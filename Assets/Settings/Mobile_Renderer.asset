@@ -102,6 +102,6 @@ MonoBehaviour:
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
     depthThreshold: 0.5
     normalThreshold: 0.8
-    convexOutlinesOnly: 1
+    convexOutlinesOnly: 0
     depthOutlineStrength: 0.8
     normalOutlineStrength: 0.6

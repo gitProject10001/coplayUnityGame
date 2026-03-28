@@ -58,25 +58,6 @@ Shader "Hidden/PixelArt"
                 15.0/16.0,  7.0/16.0, 13.0/16.0,  5.0/16.0
             };
 
-            // Get linear depth that works for both ortho and perspective
-            float GetLinearDepth(float rawDepth)
-            {
-                #if UNITY_REVERSED_Z
-                    rawDepth = 1.0 - rawDepth;
-                #endif
-                // For orthographic: depth is already linear in [0,1]
-                // _ProjectionParams.x is 1 for ortho, check unity_OrthoParams.w
-                if (unity_OrthoParams.w > 0.5)
-                {
-                    // Orthographic: map raw [0,1] to [near, far]
-                    return lerp(_ProjectionParams.y, _ProjectionParams.z, rawDepth);
-                }
-                else
-                {
-                    return LinearEyeDepth(rawDepth, _ZBufferParams);
-                }
-            }
-
             half3 FindNearestPaletteColor(half3 color)
             {
                 float bestDist = 1e10;
@@ -95,65 +76,23 @@ Shader "Hidden/PixelArt"
                 return bestColor;
             }
 
-            void DetectEdges(float2 uv, float2 texelSize,
-                out float depthEdge, out float normalEdge, out bool isConvex)
+            // Simple Roberts Cross edge detection on raw depth — works for ortho and perspective
+            float DepthEdge(float2 uv, float2 texelSize)
             {
-                float rawCenter = SampleSceneDepth(uv);
-                float3 normalCenter = SampleSceneNormals(uv);
-                float linearCenter = GetLinearDepth(rawCenter);
+                float d00 = SampleSceneDepth(uv + float2(-texelSize.x, -texelSize.y));
+                float d11 = SampleSceneDepth(uv + float2( texelSize.x,  texelSize.y));
+                float d01 = SampleSceneDepth(uv + float2(-texelSize.x,  texelSize.y));
+                float d10 = SampleSceneDepth(uv + float2( texelSize.x, -texelSize.y));
+                return abs(d00 - d11) + abs(d01 - d10);
+            }
 
-                // 4-texel kernel: up, down, left, right
-                float2 offsets[4] = {
-                    float2(0, texelSize.y),
-                    float2(0, -texelSize.y),
-                    float2(-texelSize.x, 0),
-                    float2(texelSize.x, 0)
-                };
-
-                float depths[4];
-                float3 normals[4];
-                float depthBiases[4];
-
-                for (int i = 0; i < 4; i++)
-                {
-                    float2 sampleUV = uv + offsets[i];
-                    depths[i] = GetLinearDepth(SampleSceneDepth(sampleUV));
-                    normals[i] = SampleSceneNormals(sampleUV);
-                    depthBiases[i] = depths[i] - linearCenter;
-                }
-
-                // --- Depth edge ---
-                // Clamp biases to [0,1] for single-pixel foreground outlines
-                float depthDiff = 0;
-                for (int j = 0; j < 4; j++)
-                {
-                    depthDiff += saturate(depthBiases[j]);
-                }
-
-                // For orthographic, use a fixed threshold (depth doesn't scale with distance)
-                float adjustedThreshold = _DepthThreshold;
-                if (unity_OrthoParams.w < 0.5)
-                {
-                    adjustedThreshold = _DepthThreshold * linearCenter * 0.05;
-                }
-                depthEdge = smoothstep(adjustedThreshold * 0.3, adjustedThreshold, depthDiff);
-
-                // --- Normal edge ---
-                float normalDiff = 0;
-                for (int k = 0; k < 4; k++)
-                {
-                    float sharpness = 1.0 - dot(normalCenter, normals[k]);
-                    normalDiff += sharpness;
-                }
-
-                // Convex detection via cross product of opposing normals
-                float avgDepthBias = (depthBiases[0] + depthBiases[1] + depthBiases[2] + depthBiases[3]) * 0.25;
-                float3 crossH = cross(normals[2], normals[3]); // left x right
-                float3 crossV = cross(normals[1], normals[0]); // down x up
-                float convexity = dot(crossH, normalCenter) + dot(crossV, normalCenter);
-                isConvex = (avgDepthBias > 0.001) || (convexity > 0.01);
-
-                normalEdge = smoothstep(_NormalThreshold * 0.3, _NormalThreshold, normalDiff);
+            float NormalEdge(float2 uv, float2 texelSize)
+            {
+                float3 n00 = SampleSceneNormals(uv + float2(-texelSize.x, -texelSize.y));
+                float3 n11 = SampleSceneNormals(uv + float2( texelSize.x,  texelSize.y));
+                float3 n01 = SampleSceneNormals(uv + float2(-texelSize.x,  texelSize.y));
+                float3 n10 = SampleSceneNormals(uv + float2( texelSize.x, -texelSize.y));
+                return distance(n00, n11) + distance(n01, n10);
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -181,16 +120,38 @@ Shader "Hidden/PixelArt"
                 // --- Outlines ---
                 if (_EnableOutlines > 0.5)
                 {
-                    float2 texelSize = _BlitTexture_TexelSize.xy;
+                    // Each downscaled pixel covers _PixelScale full-res pixels
+                    float2 texelSize = _BlitTexture_TexelSize.xy * _PixelScale;
 
-                    float depthEdge, normalEdge;
-                    bool isConvex;
-                    DetectEdges(uv, texelSize, depthEdge, normalEdge, isConvex);
+                    float rawDepthEdge = DepthEdge(uv, texelSize);
+                    float rawNormalEdge = NormalEdge(uv, texelSize);
 
-                    if (_ConvexOnly > 0.5 && !isConvex)
+                    // Normal edges are the primary outline driver (reliable)
+                    // Depth edges need high thresholds to avoid noise
+                    float depthEdge = smoothstep(_DepthThreshold * 0.0005, _DepthThreshold * 0.002, rawDepthEdge);
+                    float normalEdge = smoothstep(_NormalThreshold * 0.05, _NormalThreshold * 0.3, rawNormalEdge);
+
+                    // Convex-only: use center depth vs neighbors to detect convexity
+                    if (_ConvexOnly > 0.5)
                     {
-                        depthEdge = 0;
-                        normalEdge *= 0.15;
+                        float centerDepth = SampleSceneDepth(uv);
+                        float neighborAvg = (
+                            SampleSceneDepth(uv + float2(-texelSize.x, 0)) +
+                            SampleSceneDepth(uv + float2( texelSize.x, 0)) +
+                            SampleSceneDepth(uv + float2(0, -texelSize.y)) +
+                            SampleSceneDepth(uv + float2(0,  texelSize.y))
+                        ) * 0.25;
+                        // Reversed-Z: closer = higher depth value. Convex = center closer than neighbors.
+                        #if UNITY_REVERSED_Z
+                            bool isConvex = centerDepth > neighborAvg + 0.0001;
+                        #else
+                            bool isConvex = centerDepth < neighborAvg - 0.0001;
+                        #endif
+                        if (!isConvex)
+                        {
+                            depthEdge *= 0.0;
+                            normalEdge *= 0.15;
+                        }
                     }
 
                     // Depth outlines: darken (ink outline)
@@ -200,7 +161,7 @@ Shader "Hidden/PixelArt"
                     color.rgb = pow(abs(color.rgb), 1.0 + _NormalOutlineStrength * normalEdge);
 
                     // Hard outline for strong depth edges
-                    if (depthEdge > 0.6)
+                    if (depthEdge > 0.5)
                     {
                         color.rgb = lerp(color.rgb, _OutlineColor.rgb, saturate(depthEdge));
                     }

@@ -150,9 +150,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrassSpawner
   areaSize: {x: 50, y: 50}
   areaCenter: {x: 0, y: 0}
-  minSpacing: 0.5
+  minSpacing: 1.2
   maxAttempts: 30
-  maxBlades: 1500
+  maxBlades: 500
   grassMaterial: {fileID: 2100000, guid: 065d919d934b2ce4098df5c91ed7d8d5, type: 2}
   heightMin: 0.3
   heightMax: 0.7
@@ -2632,6 +2632,10 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: a5737fadf1acbe54bb23ccb06cc930d3, type: 2}
     - target: {fileID: 5866666021909216657, guid: f075c8974f4fb984a9abb46830815ad2, type: 3}
       propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6148737315974723067, guid: f075c8974f4fb984a9abb46830815ad2, type: 3}
+      propertyPath: m_RayTraceProcedural
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6148737315974723067, guid: f075c8974f4fb984a9abb46830815ad2, type: 3}

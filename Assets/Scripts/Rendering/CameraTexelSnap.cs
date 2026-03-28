@@ -22,17 +22,30 @@ public class CameraTexelSnap : MonoBehaviour
     void LateUpdate()
     {
         if (!cam.orthographic) return;
+        if (Screen.height <= 0 || pixelScale <= 0) return;
 
-        // Calculate the size of one pixel in world units
-        // orthoSize = half the vertical world-space height visible
-        // screenHeight / pixelScale = number of "macro pixels" vertically
-        float pixelWorldSize = (cam.orthographicSize * 2f) / (Screen.height / (float)pixelScale);
+        // Calculate the size of one macro-pixel in world units
+        float macroPixelCount = Screen.height / (float)pixelScale;
+        if (macroPixelCount < 1f) return;
+
+        float pixelWorldSize = (cam.orthographicSize * 2f) / macroPixelCount;
+        if (pixelWorldSize <= 0.0001f) return;
 
         Vector3 pos = transform.position;
+
+        // Guard against NaN propagation — reset to origin if corrupted
+        if (float.IsNaN(pos.x) || float.IsNaN(pos.z))
+        {
+            transform.position = new Vector3(0, pos.y, 0);
+            return;
+        }
 
         // Snap X and Z (top-down game) to pixel grid
         float snappedX = Mathf.Round(pos.x / pixelWorldSize) * pixelWorldSize;
         float snappedZ = Mathf.Round(pos.z / pixelWorldSize) * pixelWorldSize;
+
+        // Final NaN check
+        if (float.IsNaN(snappedX) || float.IsNaN(snappedZ)) return;
 
         // Store sub-pixel offset for potential re-projection (smooth feel)
         subPixelOffset.x = pos.x - snappedX;
@@ -41,10 +54,6 @@ public class CameraTexelSnap : MonoBehaviour
         transform.position = new Vector3(snappedX, pos.y, snappedZ);
     }
 
-    /// <summary>
-    /// Returns the sub-pixel offset that was removed during snapping.
-    /// Can be used for screen-space re-projection if needed.
-    /// </summary>
     public Vector3 GetSubPixelOffset()
     {
         return subPixelOffset;

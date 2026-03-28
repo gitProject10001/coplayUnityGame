@@ -73,7 +73,6 @@ public class VolumetricLightFeature : ScriptableRendererFeature
 
         private class PassData
         {
-            public TextureHandle source;
             public Material material;
         }
 
@@ -85,22 +84,23 @@ public class VolumetricLightFeature : ScriptableRendererFeature
             TextureHandle source = resourceData.activeColorTexture;
             if (!source.IsValid()) return;
 
+            // Render volumetric light directly onto color buffer with additive blending
+            // Only read depth texture, write to color as render attachment
             using (var builder = renderGraph.AddRasterRenderPass<PassData>("Volumetric Light", out var passData))
             {
-                passData.source = source;
                 passData.material = material;
-
-                builder.UseTexture(source, AccessFlags.Read);
 
                 if (resourceData.cameraDepthTexture.IsValid())
                     builder.UseTexture(resourceData.cameraDepthTexture, AccessFlags.Read);
 
-                builder.SetRenderAttachment(source, 0, AccessFlags.Write);
+                // Write additively to color buffer (shader uses Blend One One)
+                builder.SetRenderAttachment(source, 0, AccessFlags.ReadWrite);
 
                 builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
                 {
                     SetMaterialProperties();
-                    Blitter.BlitTexture(context.cmd, data.source, new Vector4(1, 1, 0, 0), data.material, 0);
+                    // Draw fullscreen quad with volumetric shader (additive blend)
+                    context.cmd.DrawProcedural(Matrix4x4.identity, data.material, 0, MeshTopology.Triangles, 3);
                 });
             }
         }
