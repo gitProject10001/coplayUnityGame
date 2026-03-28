@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__coplay-mcp__list_game_objects_in_hierarchy",
+      "mcp__coplay-mcp__get_game_object_info",
+      "mcp__coplay-mcp__create_game_object",
+      "Bash(find 'C:\\\\Users\\\\jonny\\\\Desktop\\\\unity\\\\My project for codplay\\\\Assets' -type f \\\\\\(-name *.anim -o -name *Attack* -o -name *Combat* -o -name *Animation* \\\\\\))",
+      "Bash(find 'C:\\\\Users\\\\jonny\\\\Desktop\\\\unity\\\\My project for codplay' -type f -name *.yaml -o -name *.json)",
+      "mcp__coplay-mcp__add_component"
+    ]
+  }
+}
