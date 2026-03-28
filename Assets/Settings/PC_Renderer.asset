@@ -17,10 +17,38 @@ MonoBehaviour:
     pixelScale: 2
     colorSteps: 36
     enableDithering: 1
+    usePalette: 0
+    paletteTexture: {fileID: 0}
+    paletteSize: 16
     enableOutlines: 0
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
     depthThreshold: 0.01
     normalThreshold: 0.1
+    convexOutlinesOnly: 1
+    depthOutlineStrength: 0.8
+    normalOutlineStrength: 0.6
+--- !u!114 &-3147819419174010737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2119111c0b738948bb12c00e3413bbc, type: 3}
+  m_Name: VolumetricLightFeature
+  m_EditorClassIdentifier: Assembly-CSharp::VolumetricLightFeature
+  m_Active: 1
+  settings:
+    intensity: 0.12
+    steps: 16
+    maxDistance: 30
+    scattering: 0.4
+    lightColor: {r: 1, g: 0.95, b: 0.8, a: 1}
+    density: 0.4
+    noiseScale: 5
+    noiseStrength: 0.3
 --- !u!114 &-1132356603625066941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38,10 +66,16 @@ MonoBehaviour:
     pixelScale: 10
     colorSteps: 2
     enableDithering: 1
+    usePalette: 0
+    paletteTexture: {fileID: 0}
+    paletteSize: 16
     enableOutlines: 1
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
     depthThreshold: 1
     normalThreshold: 0.5
+    convexOutlinesOnly: 1
+    depthOutlineStrength: 0.8
+    normalOutlineStrength: 0.6
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69,6 +103,7 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: -3970438568015300409}
+  - {fileID: -3147819419174010737}
   m_RendererFeatureMap: ad6b866f10d7b46c
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}

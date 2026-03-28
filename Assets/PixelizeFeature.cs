@@ -10,12 +10,19 @@ public class PixelizeFeature : ScriptableRendererFeature
     {
         [Range(1, 20)]
         public int pixelScale = 4;
-        
+
         [Header("Color")]
         [Range(2, 256)]
-        [Tooltip("Number of color steps per channel. Lower values mean fewer colors (more retro).")]
+        [Tooltip("Number of color steps per channel. Lower = fewer colors (more retro).")]
         public int colorSteps = 16;
         public bool enableDithering = true;
+
+        [Header("Palette LUT")]
+        [Tooltip("Map colors to a specific retro palette texture (1D strip of colors).")]
+        public bool usePalette = false;
+        public Texture2D paletteTexture;
+        [Range(2, 64)]
+        public int paletteSize = 16;
 
         [Header("Outlines")]
         public bool enableOutlines = true;
@@ -24,6 +31,13 @@ public class PixelizeFeature : ScriptableRendererFeature
         public float depthThreshold = 0.5f;
         [Range(0.1f, 3f)]
         public float normalThreshold = 0.8f;
+
+        [Tooltip("Only show outlines on convex edges (silhouettes), not concave creases.")]
+        public bool convexOutlinesOnly = true;
+        [Range(0f, 1f)]
+        public float depthOutlineStrength = 0.8f;
+        [Range(0f, 1f)]
+        public float normalOutlineStrength = 0.6f;
     }
 
     public PixelizeSettings settings = new PixelizeSettings();
@@ -32,7 +46,6 @@ public class PixelizeFeature : ScriptableRendererFeature
     public override void Create()
     {
         pixelizePass = new PixelizePass(settings);
-        // Run before post-processing to avoid blurring the pixels
         pixelizePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
     }
 
@@ -54,7 +67,7 @@ public class PixelizeFeature : ScriptableRendererFeature
         public PixelizePass(PixelizeSettings settings)
         {
             this.settings = settings;
-            
+
             Shader blitShader = Shader.Find("Hidden/Universal Render Pipeline/Blit");
             if (blitShader != null)
             {
@@ -68,17 +81,32 @@ public class PixelizeFeature : ScriptableRendererFeature
             }
         }
 
+        private void SetMaterialProperties(Material mat)
+        {
+            mat.SetFloat("_ColorSteps", settings.colorSteps);
+            mat.SetFloat("_PixelScale", settings.pixelScale);
+            mat.SetFloat("_EnableOutlines", settings.enableOutlines ? 1.0f : 0.0f);
+            mat.SetFloat("_EnableDithering", settings.enableDithering ? 1.0f : 0.0f);
+            mat.SetColor("_OutlineColor", settings.outlineColor);
+            mat.SetFloat("_DepthThreshold", settings.depthThreshold);
+            mat.SetFloat("_NormalThreshold", settings.normalThreshold);
+            mat.SetFloat("_ConvexOnly", settings.convexOutlinesOnly ? 1.0f : 0.0f);
+            mat.SetFloat("_DepthOutlineStrength", settings.depthOutlineStrength);
+            mat.SetFloat("_NormalOutlineStrength", settings.normalOutlineStrength);
+            mat.SetFloat("_UsePalette", settings.usePalette ? 1.0f : 0.0f);
+            mat.SetFloat("_PaletteSize", settings.paletteSize);
+
+            if (settings.paletteTexture != null)
+            {
+                mat.SetTexture("_PaletteTexture", settings.paletteTexture);
+            }
+        }
+
         private class PassData
         {
             public TextureHandle source;
             public Material material;
-            public int colorSteps;
-            public float pixelScale;
-            public bool enableOutlines;
-            public bool enableDithering;
-            public Color outlineColor;
-            public float depthThreshold;
-            public float normalThreshold;
+            public PixelizeSettings settings;
         }
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -92,30 +120,26 @@ public class PixelizeFeature : ScriptableRendererFeature
             if (!source.IsValid()) return;
 
             RenderTextureDescriptor desc = cameraData.cameraTargetDescriptor;
-            
-            TextureDesc textureDesc = new TextureDesc(Mathf.Max(1, desc.width / settings.pixelScale), Mathf.Max(1, desc.height / settings.pixelScale));
+
+            TextureDesc textureDesc = new TextureDesc(
+                Mathf.Max(1, desc.width / settings.pixelScale),
+                Mathf.Max(1, desc.height / settings.pixelScale));
             textureDesc.colorFormat = desc.graphicsFormat;
             textureDesc.depthBufferBits = 0;
             textureDesc.filterMode = FilterMode.Point;
             textureDesc.name = "_PixelizeTemp";
-            
+
             TextureHandle tempTexture = renderGraph.CreateTexture(textureDesc);
 
-            // Downscale and Posterize/Outline
+            // Pass 1: Downscale + PixelArt effects (posterize, dither, outlines, palette)
             using (var builder = renderGraph.AddRasterRenderPass<PassData>("PixelArt Downscale", out var passData))
             {
                 passData.source = source;
                 passData.material = pixelArtMaterial;
-                passData.colorSteps = settings.colorSteps;
-                passData.pixelScale = settings.pixelScale;
-                passData.enableOutlines = settings.enableOutlines;
-                passData.enableDithering = settings.enableDithering;
-                passData.outlineColor = settings.outlineColor;
-                passData.depthThreshold = settings.depthThreshold;
-                passData.normalThreshold = settings.normalThreshold;
+                passData.settings = settings;
 
                 builder.UseTexture(source, AccessFlags.Read);
-                
+
                 if (resourceData.cameraDepthTexture.IsValid())
                     builder.UseTexture(resourceData.cameraDepthTexture, AccessFlags.Read);
                 if (resourceData.cameraNormalsTexture.IsValid())
@@ -125,19 +149,12 @@ public class PixelizeFeature : ScriptableRendererFeature
 
                 builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
                 {
-                    data.material.SetFloat("_ColorSteps", data.colorSteps);
-                    data.material.SetFloat("_PixelScale", data.pixelScale);
-                    data.material.SetFloat("_EnableOutlines", data.enableOutlines ? 1.0f : 0.0f);
-                    data.material.SetFloat("_EnableDithering", data.enableDithering ? 1.0f : 0.0f);
-                    data.material.SetColor("_OutlineColor", data.outlineColor);
-                    data.material.SetFloat("_DepthThreshold", data.depthThreshold);
-                    data.material.SetFloat("_NormalThreshold", data.normalThreshold);
-                    
+                    SetMaterialProperties(data.material);
                     Blitter.BlitTexture(context.cmd, data.source, new Vector4(1, 1, 0, 0), data.material, 0);
                 });
             }
 
-            // Upscale
+            // Pass 2: Upscale with point filtering
             using (var builder = renderGraph.AddRasterRenderPass<PassData>("PixelArt Upscale", out var passData))
             {
                 passData.source = tempTexture;
@@ -162,7 +179,7 @@ public class PixelizeFeature : ScriptableRendererFeature
             desc.width = Mathf.Max(1, desc.width / settings.pixelScale);
             desc.height = Mathf.Max(1, desc.height / settings.pixelScale);
             desc.depthBufferBits = 0;
-            
+
             RenderingUtils.ReAllocateIfNeeded(ref tempRT, desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_PixelizeTemp");
         }
 
@@ -171,16 +188,10 @@ public class PixelizeFeature : ScriptableRendererFeature
             if (tempRT == null || blitMaterial == null || pixelArtMaterial == null) return;
 
             CommandBuffer cmd = CommandBufferPool.Get("PixelArt");
-            
+
             RTHandle cameraTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
 
-            pixelArtMaterial.SetFloat("_ColorSteps", settings.colorSteps);
-            pixelArtMaterial.SetFloat("_PixelScale", settings.pixelScale);
-            pixelArtMaterial.SetFloat("_EnableOutlines", settings.enableOutlines ? 1.0f : 0.0f);
-            pixelArtMaterial.SetFloat("_EnableDithering", settings.enableDithering ? 1.0f : 0.0f);
-            pixelArtMaterial.SetColor("_OutlineColor", settings.outlineColor);
-            pixelArtMaterial.SetFloat("_DepthThreshold", settings.depthThreshold);
-            pixelArtMaterial.SetFloat("_NormalThreshold", settings.normalThreshold);
+            SetMaterialProperties(pixelArtMaterial);
 
             Blitter.BlitCameraTexture(cmd, cameraTarget, tempRT, pixelArtMaterial, 0);
             Blitter.BlitCameraTexture(cmd, tempRT, cameraTarget, blitMaterial, 0);
