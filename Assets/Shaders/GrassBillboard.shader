@@ -72,31 +72,21 @@ Shader "Custom/GrassBillboard"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
 
+                // Use crossed-quad world-space orientation (not billboard)
+                // The quad is oriented by the instance matrix (TRS with random Y rotation)
                 float3 worldPos = TransformObjectToWorld(input.positionOS.xyz);
 
-                // Billboard: face the camera on the Y axis only (keep upright)
-                float3 camRight = UNITY_MATRIX_V[0].xyz;
-                float3 camUp = float3(0, 1, 0); // Keep grass upright
+                // Store vertical gradient for color blending (0 at base, 1 at tip)
+                output.verticalGradient = saturate(input.positionOS.y);
 
-                // Vertex position relative to pivot (bottom center)
-                float2 localOffset = input.uv - float2(0.5, 0);
-                localOffset.x *= _GrassWidth;
-                localOffset.y *= _GrassHeight;
-
-                // Store vertical gradient for color blending
-                output.verticalGradient = saturate(input.uv.y);
-
-                // Wind displacement (more at the top)
+                // Wind displacement (stronger at top vertices)
                 float windPhase = worldPos.x * _WindFrequency + worldPos.z * _WindFrequency * 0.7 + _Time.y * _WindSpeed;
                 float wind = sin(windPhase) * _WindStrength * output.verticalGradient;
+                worldPos.x += wind;
+                worldPos.z += wind * 0.5;
 
-                // Apply billboard offset
-                float3 billboardPos = worldPos + camRight * localOffset.x + camUp * localOffset.y;
-                billboardPos.x += wind;
-                billboardPos.z += wind * 0.5;
-
-                output.positionWS = billboardPos;
-                output.positionCS = TransformWorldToHClip(billboardPos);
+                output.positionWS = worldPos;
+                output.positionCS = TransformWorldToHClip(worldPos);
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
 
@@ -123,13 +113,13 @@ Shader "Custom/GrassBillboard"
                 float4 shadowCoord = TransformWorldToShadowCoord(basePos);
                 Light mainLight = GetMainLight(shadowCoord);
 
-                // Simple toon lighting with very soft response
+                // Bright toon lighting — grass should not be too dark
                 float NdotL = 0.5 + 0.5 * dot(float3(0, 1, 0), mainLight.direction);
-                float toon = floor(NdotL * 3.0) / 3.0;
-                float shadow = mainLight.shadowAttenuation;
+                float toon = floor(NdotL * 3.0 + 0.5) / 3.0; // bias brighter
+                float shadow = lerp(0.5, 1.0, mainLight.shadowAttenuation); // soften shadows
 
                 half3 lit = grassColor * mainLight.color * toon * shadow;
-                half3 ambient = grassColor * 0.3;
+                half3 ambient = grassColor * 0.4;
                 half3 finalColor = lit + ambient;
 
                 finalColor = MixFog(finalColor, input.fogFactor);
@@ -138,54 +128,8 @@ Shader "Custom/GrassBillboard"
             ENDHLSL
         }
 
-        // Shadow caster for grass to cast shadows
-        Pass
-        {
-            Name "ShadowCaster"
-            Tags { "LightMode"="ShadowCaster" }
-            ZWrite On ZTest LEqual Cull Off
-
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma multi_compile_instancing
-
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float2 uv : TEXCOORD0;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            TEXTURE2D(_BaseMap);
-            SAMPLER(sampler_BaseMap);
-            float _AlphaCutoff;
-
-            Varyings vert(Attributes input)
-            {
-                Varyings output;
-                UNITY_SETUP_INSTANCE_ID(input);
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.uv = input.uv;
-                return output;
-            }
-
-            half4 frag(Varyings input) : SV_Target
-            {
-                half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
-                clip(tex.a - _AlphaCutoff);
-                return 0;
-            }
-            ENDHLSL
-        }
+        // Shadow caster DISABLED for foliage — crossed quads cast ugly shadow patches
+        // from a top-down orthographic camera. Foliage should blend with ground shadows.
 
         // DepthNormals pass for outlines
         Pass

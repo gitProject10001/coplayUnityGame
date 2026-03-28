@@ -29,14 +29,14 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AlphaCutoff: 0.1
+    - _AlphaCutoff: 0.5
     - _GrassHeight: 0.6
     - _GrassWidth: 0.3
     - _WindFrequency: 3
     - _WindSpeed: 1.5
     - _WindStrength: 0.15
     m_Colors:
-    - _BaseColor: {r: 0.25, g: 0.5, b: 0.15, a: 1}
-    - _TipColor: {r: 0.45, g: 0.75, b: 0.25, a: 1}
+    - _BaseColor: {r: 0.35, g: 0.6, b: 0.2, a: 1}
+    - _TipColor: {r: 0.5, g: 0.8, b: 0.3, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

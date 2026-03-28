@@ -91,7 +91,7 @@ public class ProceduralGenerator : MonoBehaviour
 
     private void ClearChildren()
     {
-        string[] groups = { "Rocks", "Trees", "Bushes" };
+        string[] groups = { "Rocks", "Trees", "Bushes", "Cubes", "Pyramids" };
         foreach (string name in groups)
         {
             Transform old = transform.Find(name);

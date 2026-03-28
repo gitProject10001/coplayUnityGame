@@ -4,7 +4,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Spawns multi-type foliage (grass, bushes, small plants) on the ground plane
 /// using Perlin noise density patches and GPU instancing.
-/// Attach to an empty GameObject in the scene.
+/// Uses CROSSED QUADS (two quads at 90 degrees) for natural look from any angle.
 /// </summary>
 public class GrassSpawner : MonoBehaviour
 {
@@ -26,27 +26,24 @@ public class GrassSpawner : MonoBehaviour
     public LayerMask groundLayer = ~0;
     public float raycastHeight = 20f;
     [Tooltip("Don't place foliage within this radius of the player spawn")]
-    public float clearRadius = 3f;
+    public float clearRadius = 2f;
 
     [Header("Density Noise")]
-    [Tooltip("Scale of the Perlin noise used for density patches")]
     public float noiseScale = 0.15f;
-    [Tooltip("Noise offset seed for variety")]
     public float noiseOffsetX = 100f;
     public float noiseOffsetZ = 200f;
 
-    // Per-type instance matrices
+    // Per-type instance matrices (each foliage instance = 2 crossed quads)
     private List<Matrix4x4> grassMatrices = new List<Matrix4x4>();
     private List<Matrix4x4> bushMatrices = new List<Matrix4x4>();
     private List<Matrix4x4> plantMatrices = new List<Matrix4x4>();
 
     // Batched lists (max 1023 per draw call)
-    private List<List<Matrix4x4>> grassBatches = new List<List<Matrix4x4>>();
-    private List<List<Matrix4x4>> bushBatches = new List<List<Matrix4x4>>();
-    private List<List<Matrix4x4>> plantBatches = new List<List<Matrix4x4>>();
+    private List<Matrix4x4[]> grassBatches = new List<Matrix4x4[]>();
+    private List<Matrix4x4[]> bushBatches = new List<Matrix4x4[]>();
+    private List<Matrix4x4[]> plantBatches = new List<Matrix4x4[]>();
 
     private Mesh foliageQuad;
-    private MaterialPropertyBlock propBlock;
 
     void Start()
     {
@@ -58,40 +55,65 @@ public class GrassSpawner : MonoBehaviour
 
     void CreateQuadMesh()
     {
+        // Star mesh: 2 crossed vertical quads + 1 horizontal quad on top.
+        // This looks good from any angle, especially top-down orthographic.
         foliageQuad = new Mesh();
-        foliageQuad.vertices = new Vector3[]
+
+        float h = 1f;
+        float halfW = 0.5f;
+        float topY = h * 0.6f; // horizontal quad sits at 60% height
+
+        Vector3[] verts = new Vector3[]
         {
-            new Vector3(-0.5f, 0, 0),
-            new Vector3(0.5f, 0, 0),
-            new Vector3(0.5f, 1, 0),
-            new Vector3(-0.5f, 1, 0)
+            // Vertical quad 1 (along X)
+            new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0),
+            new Vector3(halfW, h, 0),  new Vector3(-halfW, h, 0),
+            // Vertical quad 2 (along Z, crossed 90 degrees)
+            new Vector3(0, 0, -halfW), new Vector3(0, 0, halfW),
+            new Vector3(0, h, halfW),  new Vector3(0, h, -halfW),
+            // Horizontal quad (flat, at topY height)
+            new Vector3(-halfW, topY, -halfW), new Vector3(halfW, topY, -halfW),
+            new Vector3(halfW, topY, halfW),   new Vector3(-halfW, topY, halfW),
         };
-        foliageQuad.uv = new Vector2[]
+
+        Vector2[] uvs = new Vector2[]
         {
-            new Vector2(0, 0),
-            new Vector2(1, 0),
-            new Vector2(1, 1),
-            new Vector2(0, 1)
+            // Quad 1 UVs
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
+            // Quad 2 UVs
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
+            // Horizontal quad UVs
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
         };
-        foliageQuad.triangles = new int[] { 0, 2, 1, 0, 3, 2 };
-        foliageQuad.normals = new Vector3[]
+
+        int[] tris = new int[]
         {
-            Vector3.forward, Vector3.forward, Vector3.forward, Vector3.forward
+            // Quad 1 (both sides)
+            0,2,1, 0,3,2,  1,2,0, 2,3,0,
+            // Quad 2 (both sides)
+            4,6,5, 4,7,6,  5,6,4, 6,7,4,
+            // Horizontal quad (both sides — visible from above and below)
+            8,10,9, 8,11,10,  9,10,8, 10,11,8,
         };
+
+        Vector3[] normals = new Vector3[12];
+        for (int i = 0; i < 4; i++) normals[i] = Vector3.forward;
+        for (int i = 4; i < 8; i++) normals[i] = Vector3.right;
+        for (int i = 8; i < 12; i++) normals[i] = Vector3.up;
+
+        foliageQuad.vertices = verts;
+        foliageQuad.uv = uvs;
+        foliageQuad.triangles = tris;
+        foliageQuad.normals = normals;
         foliageQuad.RecalculateBounds();
     }
 
-    /// <summary>
-    /// Returns a spacing value based on Perlin noise at the given world position.
-    /// High noise = dense (0.3), low noise = sparse (1.0).
-    /// </summary>
     float GetDensitySpacing(float x, float z)
     {
         float noise = Mathf.PerlinNoise(
             (x + noiseOffsetX) * noiseScale,
             (z + noiseOffsetZ) * noiseScale
         );
-        // Lerp: noise 1 -> spacing 0.3 (dense), noise 0 -> spacing 1.0 (sparse)
         return Mathf.Lerp(1.0f, 0.3f, noise);
     }
 
@@ -101,12 +123,19 @@ public class GrassSpawner : MonoBehaviour
         bushMatrices.Clear();
         plantMatrices.Clear();
 
-        SpawnFoliageType(grassMatrices, grassCount, 0.2f, 0.4f, 0.4f, 0.8f);
-        SpawnFoliageType(bushMatrices, bushCount, 0.8f, 1.5f, 0.5f, 1.0f);
-        SpawnFoliageType(plantMatrices, plantCount, 0.2f, 0.4f, 0.2f, 0.4f);
+        // Grass: thin blades, crossed quads
+        SpawnCrossedFoliage(grassMatrices, grassCount, 0.15f, 0.35f, 0.3f, 0.6f);
+        // Bushes: wider, shorter
+        SpawnCrossedFoliage(bushMatrices, bushCount, 0.5f, 1.0f, 0.3f, 0.6f);
+        // Small plants: tiny
+        SpawnCrossedFoliage(plantMatrices, plantCount, 0.15f, 0.3f, 0.15f, 0.3f);
     }
 
-    void SpawnFoliageType(List<Matrix4x4> matrices, int count,
+    /// <summary>
+    /// Spawns foliage using the star mesh (crossed quads + horizontal built-in).
+    /// One instance per placement — the mesh itself has volume from all angles.
+    /// </summary>
+    void SpawnCrossedFoliage(List<Matrix4x4> matrices, int count,
         float widthMin, float widthMax, float heightMin, float heightMax)
     {
         List<Vector2> placedPositions = new List<Vector2>();
@@ -115,24 +144,21 @@ public class GrassSpawner : MonoBehaviour
 
         for (int attempt = 0; attempt < maxAttempts && placed < count; attempt++)
         {
-            // Random point within circular spawn radius
             float angle = Random.Range(0f, Mathf.PI * 2f);
-            float dist = Random.Range(0f, spawnRadius);
+            float dist = Mathf.Sqrt(Random.Range(0f, 1f)) * spawnRadius;
             float x = areaCenter.x + Mathf.Cos(angle) * dist;
             float z = areaCenter.y + Mathf.Sin(angle) * dist;
 
             Vector2 candidate = new Vector2(x, z);
 
-            // Skip if too close to center (player spawn)
             if (candidate.magnitude < clearRadius)
                 continue;
 
-            // Get density-based spacing from Perlin noise
             float spacing = GetDensitySpacing(x, z);
 
-            // Check minimum spacing against recently placed instances
             bool tooClose = false;
-            for (int i = placedPositions.Count - 1; i >= Mathf.Max(0, placedPositions.Count - 50); i--)
+            int checkStart = Mathf.Max(0, placedPositions.Count - 60);
+            for (int i = placedPositions.Count - 1; i >= checkStart; i--)
             {
                 if (Vector2.Distance(candidate, placedPositions[i]) < spacing)
                 {
@@ -142,7 +168,6 @@ public class GrassSpawner : MonoBehaviour
             }
             if (tooClose) continue;
 
-            // Raycast to find ground
             if (Physics.Raycast(new Vector3(x, raycastHeight, z), Vector3.down,
                 out RaycastHit hit, raycastHeight * 2f, groundLayer))
             {
@@ -152,7 +177,7 @@ public class GrassSpawner : MonoBehaviour
 
                 Vector3 pos = hit.point;
                 Quaternion rot = Quaternion.Euler(0, yRot, 0);
-                Vector3 scale = new Vector3(w, h, 1);
+                Vector3 scale = new Vector3(w, h, w); // uniform XZ for the star mesh
 
                 matrices.Add(Matrix4x4.TRS(pos, rot, scale));
                 placedPositions.Add(candidate);
@@ -163,19 +188,20 @@ public class GrassSpawner : MonoBehaviour
 
     void PrepareBatches()
     {
-        propBlock = new MaterialPropertyBlock();
         BatchMatrices(grassMatrices, grassBatches);
         BatchMatrices(bushMatrices, bushBatches);
         BatchMatrices(plantMatrices, plantBatches);
     }
 
-    void BatchMatrices(List<Matrix4x4> source, List<List<Matrix4x4>> batches)
+    void BatchMatrices(List<Matrix4x4> source, List<Matrix4x4[]> batches)
     {
         batches.Clear();
         for (int i = 0; i < source.Count; i += 1023)
         {
             int count = Mathf.Min(1023, source.Count - i);
-            batches.Add(source.GetRange(i, count));
+            Matrix4x4[] batch = new Matrix4x4[count];
+            source.CopyTo(i, batch, 0, count);
+            batches.Add(batch);
         }
     }
 
@@ -188,13 +214,12 @@ public class GrassSpawner : MonoBehaviour
         DrawBatches(smallPlantMaterial, plantBatches);
     }
 
-    void DrawBatches(Material mat, List<List<Matrix4x4>> batches)
+    void DrawBatches(Material mat, List<Matrix4x4[]> batches)
     {
         if (mat == null) return;
-
         foreach (var batch in batches)
         {
-            Graphics.DrawMeshInstanced(foliageQuad, 0, mat, batch.ToArray(), batch.Count, propBlock);
+            Graphics.DrawMeshInstanced(foliageQuad, 0, mat, batch, batch.Length);
         }
     }
 }
