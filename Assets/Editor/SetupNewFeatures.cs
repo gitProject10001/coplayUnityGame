@@ -31,11 +31,8 @@ public class SetupNewFeatures
             var spawnerObj = new GameObject("GrassSpawner");
             var spawner = spawnerObj.AddComponent<GrassSpawner>();
             spawner.grassMaterial = grassMat;
-            spawner.areaSize = new Vector2(50, 50);
-            spawner.maxBlades = 1500;
-            spawner.minSpacing = 0.5f;
-            spawner.heightMin = 0.3f;
-            spawner.heightMax = 0.7f;
+            spawner.spawnRadius = 15f;
+            spawner.grassCount = 4000;
             spawner.clearRadius = 3f;
             result += "Created GrassSpawner in scene\n";
         }

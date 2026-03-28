@@ -28,16 +28,26 @@ public class PixelizeFeature : ScriptableRendererFeature
         public bool enableOutlines = true;
         public Color outlineColor = Color.black;
         [Range(0.01f, 5f)]
-        public float depthThreshold = 0.5f;
+        public float depthThreshold = 1.5f;
         [Range(0.1f, 3f)]
-        public float normalThreshold = 0.8f;
+        public float normalThreshold = 0.5f;
 
         [Tooltip("Only show outlines on convex edges (silhouettes), not concave creases.")]
-        public bool convexOutlinesOnly = true;
+        public bool convexOutlinesOnly = false;
         [Range(0f, 1f)]
-        public float depthOutlineStrength = 0.8f;
+        public float depthOutlineStrength = 1.0f;
         [Range(0f, 1f)]
-        public float normalOutlineStrength = 0.6f;
+        public float normalOutlineStrength = 0.8f;
+
+        [Header("Fog")]
+        public bool enableFog = true;
+        public Color fogColor = new Color(0.12f, 0.18f, 0.15f, 1f);
+        [Range(0.1f, 10f)]
+        public float fogDensity = 2.0f;
+        [Range(0f, 1f)]
+        public float fogStart = 0.0f;
+        [Range(0f, 1f)]
+        public float fogEnd = 1.0f;
     }
 
     public PixelizeSettings settings = new PixelizeSettings();
@@ -100,6 +110,13 @@ public class PixelizeFeature : ScriptableRendererFeature
             {
                 mat.SetTexture("_PaletteTexture", settings.paletteTexture);
             }
+
+            // Fog
+            mat.SetFloat("_EnableFog", settings.enableFog ? 1.0f : 0.0f);
+            mat.SetColor("_FogColor", settings.fogColor);
+            mat.SetFloat("_FogDensity", settings.fogDensity);
+            mat.SetFloat("_FogStart", settings.fogStart);
+            mat.SetFloat("_FogEnd", settings.fogEnd);
         }
 
         private class PassData
@@ -131,7 +148,7 @@ public class PixelizeFeature : ScriptableRendererFeature
 
             TextureHandle tempTexture = renderGraph.CreateTexture(textureDesc);
 
-            // Pass 1: Downscale + PixelArt effects (posterize, dither, outlines, palette)
+            // Pass 1: Downscale + PixelArt effects (posterize, dither, fog, outlines, palette)
             using (var builder = renderGraph.AddRasterRenderPass<PassData>("PixelArt Downscale", out var passData))
             {
                 passData.source = source;
