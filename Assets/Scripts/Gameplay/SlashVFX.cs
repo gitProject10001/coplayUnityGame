@@ -64,6 +64,12 @@ public class SlashVFX : MonoBehaviour
                 startScale = 0.5f;
                 endScale = 2.0f;
                 break;
+            case 3: // Charged heavy attack — golden arc
+                startColor = new Color(1f, 0.85f, 0.2f, 1f);
+                maxLifetime = 0.35f;
+                startScale = 0.5f;
+                endScale = 2.5f;
+                break;
             default:
                 startColor = Color.white;
                 maxLifetime = 0.18f;
@@ -107,8 +113,8 @@ public class SlashVFX : MonoBehaviour
 
         // Arc parameters vary by combo step
         float innerRadius = 0.5f;
-        float outerRadius = 1.5f + comboStep * 0.3f;
-        float arcAngle = 120f + comboStep * 15f; // Degrees
+        float outerRadius = comboStep == 3 ? 2.5f : 1.5f + comboStep * 0.3f;
+        float arcAngle = comboStep == 3 ? 180f : 120f + comboStep * 15f; // Degrees
         int segments = 12;
 
         int vertCount = (segments + 1) * 2;

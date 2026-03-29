@@ -3,7 +3,7 @@ using UnityEngine;
 public class CameraFollow : MonoBehaviour
 {
     public Transform target;
-    public Vector3 offset = new Vector3(0f, 14f, -10f);
+    public Vector3 offset = new Vector3(-10f, 10f, -10f);
     public float smoothSpeed = 8f;
     public float lookAheadDistance = 1.5f;
     public float lookAheadSmooth = 4f;
@@ -22,7 +22,7 @@ public class CameraFollow : MonoBehaviour
         {
             // If offset was never set (still zero), compute a sensible default
             if (offset.sqrMagnitude < 0.1f)
-                offset = new Vector3(0f, 14f, -10f);
+                offset = new Vector3(-10f, 10f, -10f);
 
             lastTargetPos = target.position;
             transform.position = target.position + offset;

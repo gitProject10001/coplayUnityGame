@@ -21,14 +21,24 @@ public class CameraTexelSnap : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!cam.orthographic) return;
         if (Screen.height <= 0 || pixelScale <= 0) return;
 
         // Calculate the size of one macro-pixel in world units
         float macroPixelCount = Screen.height / (float)pixelScale;
         if (macroPixelCount < 1f) return;
 
-        float pixelWorldSize = (cam.orthographicSize * 2f) / macroPixelCount;
+        float pixelWorldSize;
+        if (cam.orthographic)
+        {
+            pixelWorldSize = (cam.orthographicSize * 2f) / macroPixelCount;
+        }
+        else
+        {
+            // For perspective, approximate using the vertical extent at the ground plane distance
+            float distToGround = Mathf.Max(transform.position.y, 1f);
+            float verticalExtent = 2f * distToGround * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            pixelWorldSize = verticalExtent / macroPixelCount;
+        }
         if (pixelWorldSize <= 0.0001f) return;
 
         Vector3 pos = transform.position;

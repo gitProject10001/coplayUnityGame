@@ -6,7 +6,24 @@
       "mcp__coplay-mcp__create_game_object",
       "Bash(find 'C:\\\\Users\\\\jonny\\\\Desktop\\\\unity\\\\My project for codplay\\\\Assets' -type f \\\\\\(-name *.anim -o -name *Attack* -o -name *Combat* -o -name *Animation* \\\\\\))",
       "Bash(find 'C:\\\\Users\\\\jonny\\\\Desktop\\\\unity\\\\My project for codplay' -type f -name *.yaml -o -name *.json)",
-      "mcp__coplay-mcp__add_component"
+      "mcp__coplay-mcp__add_component",
+      "WebFetch(domain:www.davidhol.land)",
+      "mcp__coplay-mcp__check_compile_errors",
+      "mcp__coplay-mcp__execute_script",
+      "mcp__coplay-mcp__set_property",
+      "mcp__coplay-mcp__save_scene",
+      "mcp__coplay-mcp__get_unity_logs",
+      "mcp__coplay-mcp__capture_scene_object",
+      "mcp__coplay-mcp__play_game",
+      "mcp__coplay-mcp__stop_game",
+      "Bash(ls -la \"/c/Users/jonny/Desktop/unity/My project for codplay/\"*.png)",
+      "mcp__coplay-mcp__list_files",
+      "mcp__coplay-mcp__scene_view_functions",
+      "mcp__coplay-mcp__delete_game_object",
+      "mcp__coplay-mcp__create_ui_element",
+      "mcp__coplay-mcp__get_unity_editor_state",
+      "mcp__coplay-mcp__remove_component",
+      "mcp__coplay-mcp__set_transform"
     ]
   }
 }
