@@ -2,9 +2,9 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Spawns multi-type foliage (grass, bushes, small plants) on the ground plane
-/// using Perlin noise density patches and GPU instancing.
-/// Uses CROSSED QUADS (two quads at 90 degrees) for natural look from any angle.
+/// Spawns bush and small plant foliage on the ground plane
+/// using Perlin noise density patches and GPU instancing with per-instance color variation.
+/// Grass is handled separately by the GeometryGrass shader.
 /// </summary>
 public class GrassSpawner : MonoBehaviour
 {
@@ -13,12 +13,10 @@ public class GrassSpawner : MonoBehaviour
     public Vector2 areaCenter = Vector2.zero;
 
     [Header("Foliage Counts")]
-    public int grassCount = 4000;
-    public int bushCount = 400;
-    public int plantCount = 600;
+    public int bushCount = 1500;
+    public int plantCount = 2500;
 
     [Header("Materials")]
-    public Material grassMaterial;
     public Material bushMaterial;
     public Material smallPlantMaterial;
 
@@ -33,15 +31,18 @@ public class GrassSpawner : MonoBehaviour
     public float noiseOffsetX = 100f;
     public float noiseOffsetZ = 200f;
 
-    // Per-type instance matrices (each foliage instance = 2 crossed quads)
-    private List<Matrix4x4> grassMatrices = new List<Matrix4x4>();
-    private List<Matrix4x4> bushMatrices = new List<Matrix4x4>();
-    private List<Matrix4x4> plantMatrices = new List<Matrix4x4>();
+    [Header("Color Variation")]
+    [Range(0f, 0.5f)]
+    public float colorVariation = 0.25f;
 
-    // Batched lists (max 1023 per draw call)
-    private List<Matrix4x4[]> grassBatches = new List<Matrix4x4[]>();
-    private List<Matrix4x4[]> bushBatches = new List<Matrix4x4[]>();
-    private List<Matrix4x4[]> plantBatches = new List<Matrix4x4[]>();
+    private struct FoliageBatch
+    {
+        public Matrix4x4[] matrices;
+        public MaterialPropertyBlock props;
+    }
+
+    private List<FoliageBatch> bushBatches = new List<FoliageBatch>();
+    private List<FoliageBatch> plantBatches = new List<FoliageBatch>();
 
     private Mesh foliageQuad;
 
@@ -50,18 +51,15 @@ public class GrassSpawner : MonoBehaviour
         Random.InitState(123);
         CreateQuadMesh();
         SpawnAllFoliage();
-        PrepareBatches();
     }
 
     void CreateQuadMesh()
     {
-        // Star mesh: 2 crossed vertical quads + 1 horizontal quad on top.
-        // This looks good from any angle, especially top-down orthographic.
         foliageQuad = new Mesh();
 
         float h = 1f;
         float halfW = 0.5f;
-        float topY = h * 0.6f; // horizontal quad sits at 60% height
+        float topY = h * 0.6f;
 
         Vector3[] verts = new Vector3[]
         {
@@ -78,21 +76,15 @@ public class GrassSpawner : MonoBehaviour
 
         Vector2[] uvs = new Vector2[]
         {
-            // Quad 1 UVs
             new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
-            // Quad 2 UVs
             new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
-            // Horizontal quad UVs
             new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
         };
 
         int[] tris = new int[]
         {
-            // Quad 1 (both sides)
             0,2,1, 0,3,2,  1,2,0, 2,3,0,
-            // Quad 2 (both sides)
             4,6,5, 4,7,6,  5,6,4, 6,7,4,
-            // Horizontal quad (both sides — visible from above and below)
             8,10,9, 8,11,10,  9,10,8, 10,11,8,
         };
 
@@ -114,29 +106,26 @@ public class GrassSpawner : MonoBehaviour
             (x + noiseOffsetX) * noiseScale,
             (z + noiseOffsetZ) * noiseScale
         );
-        return Mathf.Lerp(1.0f, 0.3f, noise);
+        return Mathf.Lerp(0.5f, 0.12f, noise);
     }
 
     void SpawnAllFoliage()
     {
-        grassMatrices.Clear();
-        bushMatrices.Clear();
-        plantMatrices.Clear();
+        var bushData = new List<(Matrix4x4 mat, Color baseCol, Color tipCol)>();
+        var plantData = new List<(Matrix4x4 mat, Color baseCol, Color tipCol)>();
 
-        // Grass: thin blades, crossed quads
-        SpawnCrossedFoliage(grassMatrices, grassCount, 0.15f, 0.35f, 0.3f, 0.6f);
-        // Bushes: wider, shorter
-        SpawnCrossedFoliage(bushMatrices, bushCount, 0.5f, 1.0f, 0.3f, 0.6f);
-        // Small plants: tiny
-        SpawnCrossedFoliage(plantMatrices, plantCount, 0.15f, 0.3f, 0.15f, 0.3f);
+        SpawnFoliage(bushData, bushCount, 0.6f, 1.4f, 0.4f, 0.9f,
+            new Color(0.06f, 0.14f, 0.04f), new Color(0.12f, 0.24f, 0.07f));
+        SpawnFoliage(plantData, plantCount, 0.15f, 0.35f, 0.15f, 0.35f,
+            new Color(0.07f, 0.16f, 0.04f), new Color(0.13f, 0.26f, 0.07f));
+
+        PrepareBatchesWithColor(bushData, bushBatches);
+        PrepareBatchesWithColor(plantData, plantBatches);
     }
 
-    /// <summary>
-    /// Spawns foliage using the star mesh (crossed quads + horizontal built-in).
-    /// One instance per placement — the mesh itself has volume from all angles.
-    /// </summary>
-    void SpawnCrossedFoliage(List<Matrix4x4> matrices, int count,
-        float widthMin, float widthMax, float heightMin, float heightMax)
+    void SpawnFoliage(List<(Matrix4x4, Color, Color)> data, int count,
+        float widthMin, float widthMax, float heightMin, float heightMax,
+        Color baseCol, Color tipCol)
     {
         List<Vector2> placedPositions = new List<Vector2>();
         int placed = 0;
@@ -157,7 +146,7 @@ public class GrassSpawner : MonoBehaviour
             float spacing = GetDensitySpacing(x, z);
 
             bool tooClose = false;
-            int checkStart = Mathf.Max(0, placedPositions.Count - 60);
+            int checkStart = Mathf.Max(0, placedPositions.Count - 40);
             for (int i = placedPositions.Count - 1; i >= checkStart; i--)
             {
                 if (Vector2.Distance(candidate, placedPositions[i]) < spacing)
@@ -177,31 +166,58 @@ public class GrassSpawner : MonoBehaviour
 
                 Vector3 pos = hit.point;
                 Quaternion rot = Quaternion.Euler(0, yRot, 0);
-                Vector3 scale = new Vector3(w, h, w); // uniform XZ for the star mesh
+                Vector3 scale = new Vector3(w, h, w);
 
-                matrices.Add(Matrix4x4.TRS(pos, rot, scale));
+                Matrix4x4 mat = Matrix4x4.TRS(pos, rot, scale);
+
+                float colorNoise = Mathf.PerlinNoise(x * 0.5f + 37.7f, z * 0.5f + 91.3f);
+                float hueShift = (colorNoise - 0.5f) * colorVariation;
+                float brightShift = (Random.Range(-1f, 1f)) * colorVariation * 0.5f;
+
+                Color instanceBase = new Color(
+                    Mathf.Clamp01(baseCol.r + hueShift * 0.3f + brightShift),
+                    Mathf.Clamp01(baseCol.g + hueShift * 0.5f + brightShift),
+                    Mathf.Clamp01(baseCol.b + hueShift * 0.2f + brightShift),
+                    1f
+                );
+                Color instanceTip = new Color(
+                    Mathf.Clamp01(tipCol.r + hueShift * 0.3f + brightShift),
+                    Mathf.Clamp01(tipCol.g + hueShift * 0.5f + brightShift),
+                    Mathf.Clamp01(tipCol.b + hueShift * 0.2f + brightShift),
+                    1f
+                );
+
+                data.Add((mat, instanceBase, instanceTip));
                 placedPositions.Add(candidate);
                 placed++;
             }
         }
     }
 
-    void PrepareBatches()
-    {
-        BatchMatrices(grassMatrices, grassBatches);
-        BatchMatrices(bushMatrices, bushBatches);
-        BatchMatrices(plantMatrices, plantBatches);
-    }
-
-    void BatchMatrices(List<Matrix4x4> source, List<Matrix4x4[]> batches)
+    void PrepareBatchesWithColor(List<(Matrix4x4 mat, Color baseCol, Color tipCol)> data,
+        List<FoliageBatch> batches)
     {
         batches.Clear();
-        for (int i = 0; i < source.Count; i += 1023)
+        for (int i = 0; i < data.Count; i += 1023)
         {
-            int count = Mathf.Min(1023, source.Count - i);
-            Matrix4x4[] batch = new Matrix4x4[count];
-            source.CopyTo(i, batch, 0, count);
-            batches.Add(batch);
+            int count = Mathf.Min(1023, data.Count - i);
+            Matrix4x4[] matrices = new Matrix4x4[count];
+            Vector4[] baseColors = new Vector4[count];
+            Vector4[] tipColors = new Vector4[count];
+
+            for (int j = 0; j < count; j++)
+            {
+                var item = data[i + j];
+                matrices[j] = item.mat;
+                baseColors[j] = item.baseCol;
+                tipColors[j] = item.tipCol;
+            }
+
+            MaterialPropertyBlock props = new MaterialPropertyBlock();
+            props.SetVectorArray("_BaseColor", baseColors);
+            props.SetVectorArray("_TipColor", tipColors);
+
+            batches.Add(new FoliageBatch { matrices = matrices, props = props });
         }
     }
 
@@ -209,17 +225,17 @@ public class GrassSpawner : MonoBehaviour
     {
         if (foliageQuad == null) return;
 
-        DrawBatches(grassMaterial, grassBatches);
         DrawBatches(bushMaterial, bushBatches);
         DrawBatches(smallPlantMaterial, plantBatches);
     }
 
-    void DrawBatches(Material mat, List<Matrix4x4[]> batches)
+    void DrawBatches(Material mat, List<FoliageBatch> batches)
     {
         if (mat == null) return;
         foreach (var batch in batches)
         {
-            Graphics.DrawMeshInstanced(foliageQuad, 0, mat, batch, batch.Length);
+            Graphics.DrawMeshInstanced(foliageQuad, 0, mat, batch.matrices,
+                batch.matrices.Length, batch.props);
         }
     }
 }

@@ -98,8 +98,6 @@ public class SetupForestScene
             var spawnerObj = GameObject.FindObjectOfType<GrassSpawner>();
             if (spawnerObj != null)
             {
-                var grassMat = AssetDatabase.LoadAssetAtPath<Material>(matDir + "/GrassBillboard.mat");
-                if (grassMat != null) spawnerObj.grassMaterial = grassMat;
                 spawnerObj.bushMaterial = bushMat;
                 spawnerObj.smallPlantMaterial = plantMat;
                 result += "Assigned materials to GrassSpawner\n";

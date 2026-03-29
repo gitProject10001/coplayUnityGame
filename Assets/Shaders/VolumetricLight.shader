@@ -85,6 +85,25 @@ Shader "Hidden/VolumetricLight"
                 return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
             }
 
+            // Procedural canopy occlusion — simulates light filtering through tree cover
+            // Projects world position along light direction to create streak patterns
+            float canopyOcclusion(float3 worldPos, float3 lightDir)
+            {
+                // Project position onto a plane perpendicular to the light
+                float3 right = normalize(cross(lightDir, float3(0, 1, 0)));
+                float3 up = normalize(cross(right, lightDir));
+                float2 projected = float2(dot(worldPos, right), dot(worldPos, up));
+
+                // Layer multiple noise octaves for organic canopy gaps
+                float n1 = noise3D(float3(projected * 0.8, 0));
+                float n2 = noise3D(float3(projected * 1.6, 10));
+                float n3 = noise3D(float3(projected * 3.2, 20));
+                float canopy = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+
+                // Create distinct gaps (rays) vs blocked areas
+                return smoothstep(0.35, 0.55, canopy);
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 float2 uv = input.texcoord;
@@ -117,19 +136,23 @@ Shader "Hidden/VolumetricLight"
                     float t = (i / _Steps) * totalDist;
                     float3 samplePos = camPos + rayDir * t;
 
+                    // Real shadow from scene objects
                     float4 shadowCoord = TransformWorldToShadowCoord(samplePos);
                     float shadow = MainLightRealtimeShadow(shadowCoord);
+
+                    // Procedural canopy for god ray streaks
+                    float canopy = canopyOcclusion(samplePos, lightDir);
 
                     float noise = noise3D(samplePos * _NoiseScale + _Time.y * 0.1);
                     float density = _Density * (1.0 + (noise - 0.5) * _NoiseStrength * 2.0);
 
-                    accumLight += shadow * density * stepSize;
+                    accumLight += shadow * canopy * density * stepSize;
                 }
 
                 accumLight *= phase * _Intensity;
 
-                // Posterize for pixel art feel
-                accumLight = floor(accumLight * 8.0) / 8.0;
+                // Soft posterize for pixel art feel
+                accumLight = floor(accumLight * 12.0 + 0.5) / 12.0;
 
                 half3 volumetricColor = accumLight * _LightColor.rgb * mainLight.color;
                 return half4(volumetricColor, 0);

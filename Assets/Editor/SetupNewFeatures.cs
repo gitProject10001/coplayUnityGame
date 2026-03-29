@@ -12,33 +12,13 @@ public class SetupNewFeatures
         if (!AssetDatabase.IsValidFolder(matDir))
             AssetDatabase.CreateFolder("Assets", "Materials");
 
-        // 1. Create Grass material
-        Shader grassShader = Shader.Find("Custom/GrassBillboard");
-        if (grassShader != null)
+        // 1. Create GrassSpawner for bushes/plants (grass handled by GeometryGrass shader)
         {
-            Material grassMat = new Material(grassShader);
-            grassMat.SetColor("_BaseColor", new Color(0.25f, 0.5f, 0.15f, 1f));
-            grassMat.SetColor("_TipColor", new Color(0.45f, 0.75f, 0.25f, 1f));
-            grassMat.SetFloat("_GrassHeight", 0.6f);
-            grassMat.SetFloat("_GrassWidth", 0.3f);
-            grassMat.SetFloat("_WindStrength", 0.15f);
-            grassMat.SetFloat("_AlphaCutoff", 0.1f);
-            grassMat.enableInstancing = true;
-            AssetDatabase.CreateAsset(grassMat, matDir + "/GrassBillboard.mat");
-            result += "Created GrassBillboard.mat\n";
-
-            // Create GrassSpawner in scene
             var spawnerObj = new GameObject("GrassSpawner");
             var spawner = spawnerObj.AddComponent<GrassSpawner>();
-            spawner.grassMaterial = grassMat;
             spawner.spawnRadius = 15f;
-            spawner.grassCount = 4000;
             spawner.clearRadius = 3f;
             result += "Created GrassSpawner in scene\n";
-        }
-        else
-        {
-            result += "ERROR: Custom/GrassBillboard shader not found\n";
         }
 
         // 2. Create Water material and plane

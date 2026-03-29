@@ -6,18 +6,20 @@ Shader "Custom/GroundToon"
         _BaseMap ("Base Map", 2D) = "white" {}
 
         [Header(Ground Variation)]
-        _DirtColor ("Dirt Color", Color) = (0.25, 0.2, 0.12, 1)
-        _MossColor ("Moss Color", Color) = (0.2, 0.32, 0.12, 1)
-        _PathColor ("Path Color", Color) = (0.3, 0.28, 0.18, 1)
-        _NoiseScale1 ("Large Patch Scale", Float) = 0.3
+        _DirtColor ("Dirt Color", Color) = (0.22, 0.17, 0.10, 1)
+        _MossColor ("Moss Color", Color) = (0.15, 0.25, 0.10, 1)
+        _PathColor ("Path Color", Color) = (0.28, 0.25, 0.18, 1)
+        _StoneColor ("Stone Color", Color) = (0.22, 0.23, 0.28, 1)
+        _NoiseScale1 ("Large Patch Scale", Float) = 0.15
         _NoiseScale2 ("Detail Scale", Float) = 1.5
+        _NoiseScale3 ("Stone Patch Scale", Float) = 0.08
         _PatchBlend ("Patch Blend", Range(0, 1)) = 0.6
 
         [Header(Toon Shading)]
         _LightSteps ("Light Steps", Range(2, 8)) = 3
         _EdgeSmoothness ("Edge Smoothness", Range(0, 0.5)) = 0.05
-        _ShadowColor ("Shadow Tint", Color) = (0.4, 0.4, 0.6, 1)
-        _AmbientStrength ("Ambient Strength", Range(0, 1)) = 0.15
+        _ShadowColor ("Shadow Tint", Color) = (0.3, 0.25, 0.4, 1)
+        _AmbientStrength ("Ambient Strength", Range(0, 1)) = 0.2
     }
     SubShader
     {
@@ -65,8 +67,10 @@ Shader "Custom/GroundToon"
                 float4 _DirtColor;
                 float4 _MossColor;
                 float4 _PathColor;
+                float4 _StoneColor;
                 float _NoiseScale1;
                 float _NoiseScale2;
+                float _NoiseScale3;
                 float _PatchBlend;
                 float _LightSteps;
                 float _EdgeSmoothness;
@@ -126,6 +130,11 @@ Shader "Custom/GroundToon"
                 // Large patches: blend between dirt and moss
                 float largePatch = Noise2D(worldXZ * _NoiseScale1);
                 half3 groundColor = lerp(_DirtColor.rgb, _MossColor.rgb, largePatch);
+
+                // Stone patches: large-scale rocky areas for variety
+                float stonePatch = Noise2D(worldXZ * _NoiseScale3 + float2(73.7, 41.3));
+                stonePatch = smoothstep(0.45, 0.65, stonePatch);
+                groundColor = lerp(groundColor, _StoneColor.rgb, stonePatch);
 
                 // Small detail: accent with path color
                 float detail = Noise2D(worldXZ * _NoiseScale2);

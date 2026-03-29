@@ -41,9 +41,9 @@ public class PixelizeFeature : ScriptableRendererFeature
 
         [Header("Fog")]
         public bool enableFog = true;
-        public Color fogColor = new Color(0.12f, 0.18f, 0.15f, 1f);
+        public Color fogColor = new Color(0.06f, 0.10f, 0.12f, 1f);
         [Range(0.1f, 10f)]
-        public float fogDensity = 2.0f;
+        public float fogDensity = 3.0f;
         [Range(0f, 1f)]
         public float fogStart = 0.0f;
         [Range(0f, 1f)]

@@ -46,8 +46,36 @@ public class GenerateGrassTexture
         SetupMaterial("Assets/Materials/SmallPlant.mat", dir + "/SmallPlant.png",
             new Color(0.25f, 0.5f, 0.15f), new Color(0.4f, 0.65f, 0.25f), 0.5f);
 
+        // 4. Wind distortion map for geometry grass
+        GenerateWindDistortion(dir + "/WindDistortion.png", 256, 256);
+
+        // 5. Grass mask (solid white = grass everywhere)
+        GenerateGrassMask(dir + "/GrassMask.png", 64, 64);
+
+        // Set import settings for new textures
+        foreach (string p in new string[]{
+            dir + "/WindDistortion.png",
+            dir + "/GrassMask.png"
+        })
+        {
+            TextureImporter imp = AssetImporter.GetAtPath(p) as TextureImporter;
+            if (imp != null)
+            {
+                imp.filterMode = FilterMode.Bilinear;
+                imp.textureCompression = TextureImporterCompression.Uncompressed;
+                imp.mipmapEnabled = true;
+                imp.wrapMode = TextureWrapMode.Repeat;
+                imp.sRGBTexture = false;
+                imp.npotScale = TextureImporterNPOTScale.None;
+                imp.SaveAndReimport();
+            }
+        }
+
+        // Setup geometry grass material
+        SetupGeometryGrassMaterial(dir);
+
         AssetDatabase.SaveAssets();
-        return "Generated all foliage textures with bright greens.";
+        return "Generated all foliage textures including geometry grass wind/mask.";
     }
 
     static void SetupMaterial(string matPath, string texPath, Color baseCol, Color tipCol, float cutoff)
@@ -216,5 +244,97 @@ public class GenerateGrassTexture
     {
         Color[] clear = new Color[w * h];
         tex.SetPixels(clear);
+    }
+
+    // ─── Wind distortion: tileable Perlin noise in RG channels ───
+    static void GenerateWindDistortion(string path, int w, int h)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float u = x / (float)w;
+                float v = y / (float)h;
+
+                // Layered noise for wind flow (tileable via sin/cos trick)
+                float angle_u = u * Mathf.PI * 2f;
+                float angle_v = v * Mathf.PI * 2f;
+                float nx = Mathf.Cos(angle_u) * 0.5f;
+                float ny = Mathf.Sin(angle_u) * 0.5f;
+                float nz = Mathf.Cos(angle_v) * 0.5f;
+                float nw = Mathf.Sin(angle_v) * 0.5f;
+
+                float r = Mathf.PerlinNoise(nx * 4f + 50f + nz * 4f, ny * 4f + 50f + nw * 4f);
+                float g = Mathf.PerlinNoise(nx * 4f + 100f + nz * 4f, ny * 4f + 100f + nw * 4f);
+
+                tex.SetPixel(x, y, new Color(r, g, 0f, 1f));
+            }
+        }
+        tex.Apply();
+        SaveTexture(tex, path);
+    }
+
+    // ─── Grass mask: solid white (grass everywhere, paint clearings later) ───
+    static void GenerateGrassMask(string path, int w, int h)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[w * h];
+        for (int i = 0; i < pixels.Length; i++)
+            pixels[i] = Color.white;
+        tex.SetPixels(pixels);
+        tex.Apply();
+        SaveTexture(tex, path);
+    }
+
+    static void SetupGeometryGrassMaterial(string texDir)
+    {
+        string matDir = "Assets/Materials";
+        string matPath = matDir + "/GeometryGrass.mat";
+
+        // Find geometry grass shader
+        Shader grassShader = Shader.Find("Custom/GeometryGrass");
+        if (grassShader == null)
+        {
+            Debug.LogWarning("Custom/GeometryGrass shader not found. Material will be created when shader compiles.");
+            return;
+        }
+
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (mat == null)
+        {
+            mat = new Material(grassShader);
+            AssetDatabase.CreateAsset(mat, matPath);
+        }
+        else
+        {
+            mat.shader = grassShader;
+        }
+
+        // Assign textures
+        Texture2D windTex = AssetDatabase.LoadAssetAtPath<Texture2D>(texDir + "/WindDistortion.png");
+        Texture2D maskTex = AssetDatabase.LoadAssetAtPath<Texture2D>(texDir + "/GrassMask.png");
+
+        if (windTex != null) mat.SetTexture("_WindDistortionMap", windTex);
+        if (maskTex != null) mat.SetTexture("_GrassMask", maskTex);
+
+        // Dark forest colors matching the project aesthetic
+        mat.SetColor("_BaseColor", new Color(0.08f, 0.18f, 0.05f, 1f));
+        mat.SetColor("_TipColor", new Color(0.14f, 0.28f, 0.08f, 1f));
+
+        mat.SetFloat("_BladeHeight", 0.5f);
+        mat.SetFloat("_BladeHeightRandom", 0.3f);
+        mat.SetFloat("_BladeWidth", 0.05f);
+        mat.SetFloat("_BladeWidthRandom", 0.02f);
+        mat.SetFloat("_BendRotationRandom", 0.2f);
+        mat.SetFloat("_BladeForward", 0.38f);
+        mat.SetFloat("_BladeCurve", 2f);
+        mat.SetFloat("_TessellationUniform", 4f);
+        mat.SetFloat("_WindStrength", 0.15f);
+        mat.SetVector("_WindFrequency", new Vector4(0.05f, 0.05f, 0f, 0f));
+        mat.SetFloat("_GrassMaskThreshold", 0.1f);
+
+        EditorUtility.SetDirty(mat);
     }
 }

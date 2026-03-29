@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelizeFeature
   m_Active: 1
   settings:
-    pixelScale: 2
-    colorSteps: 36
-    enableDithering: 1
+    pixelScale: 1
+    colorSteps: 78
+    enableDithering: 0
     usePalette: 0
     paletteTexture: {fileID: 0}
     paletteSize: 16
@@ -27,6 +27,11 @@ MonoBehaviour:
     convexOutlinesOnly: 0
     depthOutlineStrength: 0.8
     normalOutlineStrength: 0.6
+    enableFog: 1
+    fogColor: {r: 0.12, g: 0.18, b: 0.15, a: 1}
+    fogDensity: 2
+    fogStart: 0
+    fogEnd: 1
 --- !u!114 &-3147819419174010737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63,7 +68,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelizeFeature
   m_Active: 1
   settings:
-    pixelScale: 10
+    pixelScale: 1
     colorSteps: 2
     enableDithering: 1
     usePalette: 0
@@ -76,6 +81,11 @@ MonoBehaviour:
     convexOutlinesOnly: 1
     depthOutlineStrength: 0.8
     normalOutlineStrength: 0.6
+    enableFog: 1
+    fogColor: {r: 0.06, g: 0.1, b: 0.12, a: 1}
+    fogDensity: 3
+    fogStart: 0
+    fogEnd: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

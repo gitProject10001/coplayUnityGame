@@ -9,20 +9,20 @@ public class VolumetricLightFeature : ScriptableRendererFeature
     public class VolumetricSettings
     {
         [Range(0f, 1f)]
-        public float intensity = 0.15f;
+        public float intensity = 0.6f;
         [Range(4, 64)]
-        public int steps = 16;
+        public int steps = 32;
         [Range(5f, 100f)]
-        public float maxDistance = 30f;
+        public float maxDistance = 40f;
         [Range(0f, 0.99f)]
-        public float scattering = 0.3f;
-        public Color lightColor = new Color(1f, 0.95f, 0.8f, 1f);
+        public float scattering = 0.7f;
+        public Color lightColor = new Color(0.9f, 1f, 0.75f, 1f);
         [Range(0.01f, 2f)]
-        public float density = 0.5f;
+        public float density = 1.0f;
         [Range(0.5f, 20f)]
-        public float noiseScale = 5f;
+        public float noiseScale = 3f;
         [Range(0f, 1f)]
-        public float noiseStrength = 0.3f;
+        public float noiseStrength = 0.15f;
     }
 
     public VolumetricSettings settings = new VolumetricSettings();

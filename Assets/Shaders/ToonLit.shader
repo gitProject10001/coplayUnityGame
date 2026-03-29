@@ -7,18 +7,18 @@ Shader "Custom/ToonLit"
         [Header(Toon Shading)]
         _LightSteps ("Light Steps", Range(2, 8)) = 3
         _EdgeSmoothness ("Edge Smoothness", Range(0, 0.5)) = 0.05
-        _ShadowColor ("Shadow Tint", Color) = (0.4, 0.4, 0.6, 1)
-        _AmbientStrength ("Ambient Strength", Range(0, 1)) = 0.15
+        _ShadowColor ("Shadow Tint", Color) = (0.3, 0.25, 0.4, 1)
+        _AmbientStrength ("Ambient Strength", Range(0, 1)) = 0.2
         [Header(Specular)]
         _EnableSpecular ("Enable Specular", Float) = 0
         _Glossiness ("Glossiness", Range(1, 256)) = 32
         _SpecularThreshold ("Specular Threshold", Range(0, 1)) = 0.5
         _SpecularColor ("Specular Color", Color) = (1,1,1,1)
         [Header(Rim)]
-        _EnableRim ("Enable Rim", Float) = 0
-        _RimPower ("Rim Power", Range(0.5, 8)) = 3
-        _RimThreshold ("Rim Threshold", Range(0, 1)) = 0.4
-        _RimColor ("Rim Color", Color) = (1,1,1,1)
+        _EnableRim ("Enable Rim", Float) = 1
+        _RimPower ("Rim Power", Range(0.5, 8)) = 2.5
+        _RimThreshold ("Rim Threshold", Range(0, 1)) = 0.3
+        _RimColor ("Rim Color", Color) = (0.8, 0.85, 1.0, 1)
     }
     SubShader
     {
