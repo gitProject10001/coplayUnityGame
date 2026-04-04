@@ -8,6 +8,33 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/01_ToonShaders.unity
+    guid: 05c4df7040fcb6140992407d437745e9
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/01_ToonShaders.unity
+    guid: 05c4df7040fcb6140992407d437745e9
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/02_GrassAndFoliage.unity
+    guid: 7ebf379bcc9a7074fae5853cb9c860b0
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/03_PostProcessing.unity
+    guid: 19b06782596b4214380800884dd40aac
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/04_Water.unity
+    guid: cc6ecb8f012ab0c44870c0a224f4e757
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/05_ProceduralWorld.unity
+    guid: 743dadec7040bd54aa7beba59b7efb42
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/06_Combat.unity
+    guid: cb8943eaf2a6adf4c94eebd5324ee8b7
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/07_CameraAndFeedback.unity
+    guid: 97fc6528735ab1b43995e083e3f74c92
+  - enabled: 1
+    path: Assets/TestScenes/Scenes/07_CameraAndFeedback.unity
+    guid: 97fc6528735ab1b43995e083e3f74c92
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

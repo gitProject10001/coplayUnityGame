@@ -150,10 +150,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrassSpawner
   spawnRadius: 15
   areaCenter: {x: 0, y: 0}
-  grassCount: 4000
   bushCount: 400
   plantCount: 600
-  grassMaterial: {fileID: 2100000, guid: 065d919d934b2ce4098df5c91ed7d8d5, type: 2}
   bushMaterial: {fileID: 2100000, guid: b1b1e5e19a6384e4c998617eefd703ea, type: 2}
   smallPlantMaterial: {fileID: 2100000, guid: 948ddf09bc391e845a0a6ac7fbe12de4, type: 2}
   groundLayer:
@@ -956,7 +954,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.46174863, y: 0, z: 0, w: 0.8870109}
-  m_LocalPosition: {x: 0, y: 15, z: -9974026}
+  m_LocalPosition: {x: 0, y: 15, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

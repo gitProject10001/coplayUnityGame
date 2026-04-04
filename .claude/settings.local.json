@@ -31,7 +31,9 @@
       "mcp__coplay-mcp__create_blend_tree_state",
       "WebFetch(domain:halisavakis.com)",
       "Bash(find Assets/Prefabs -type f -name *)",
-      "mcp__coplay-mcp__get_animator_controller_data"
+      "mcp__coplay-mcp__get_animator_controller_data",
+      "mcp__coplay-mcp__create_scene",
+      "mcp__coplay-mcp__open_scene"
     ]
   }
 }
