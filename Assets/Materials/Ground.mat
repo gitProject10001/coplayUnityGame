@@ -34,12 +34,14 @@ Material:
     - _LightSteps: 3
     - _NoiseScale1: 0.3
     - _NoiseScale2: 1.5
+    - _NoiseScale3: 0.08
     - _PatchBlend: 0.6
     m_Colors:
-    - _BaseColor: {r: 0.2, g: 0.28, b: 0.15, a: 1}
+    - _BaseColor: {r: 0.16, g: 0.24, b: 0.1, a: 1}
     - _DirtColor: {r: 0.25, g: 0.2, b: 0.12, a: 1}
-    - _MossColor: {r: 0.2, g: 0.32, b: 0.12, a: 1}
+    - _MossColor: {r: 0.14, g: 0.28, b: 0.1, a: 1}
     - _PathColor: {r: 0.3, g: 0.28, b: 0.18, a: 1}
     - _ShadowColor: {r: 0.15, g: 0.2, b: 0.25, a: 1}
+    - _StoneColor: {r: 0.21999997, g: 0.22999996, b: 0.27999997, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -148,10 +148,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50a4ea41d3d546545afbe4cdb682da00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrassSpawner
-  spawnRadius: 15
+  spawnRadius: 18
   areaCenter: {x: 0, y: 0}
-  bushCount: 400
-  plantCount: 600
+  bushCount: 1200
+  plantCount: 2000
   bushMaterial: {fileID: 2100000, guid: b1b1e5e19a6384e4c998617eefd703ea, type: 2}
   smallPlantMaterial: {fileID: 2100000, guid: 948ddf09bc391e845a0a6ac7fbe12de4, type: 2}
   groundLayer:
@@ -1278,7 +1278,7 @@ Light:
   serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95, b: 0.8, a: 1}
-  m_Intensity: 1.7
+  m_Intensity: 1.6
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -3435,8 +3435,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cca81771cc3aba4b963528685dc2d0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrassGroundSetup
-  radius: 15
-  gridResolution: 30
+  radius: 18
+  gridResolution: 45
   yOffset: 0.01
   grassMaterial: {fileID: 2100000, guid: f1234d046a043ac4faaee694431d458a, type: 2}
 --- !u!4 &1032598770
@@ -5837,10 +5837,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce0d9ca5b7f6d634194f35476306506f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloatingParticles
-  particleCount: 80
-  spawnRadius: 12
+  particleCount: 140
+  spawnRadius: 16
   particleScaleMin: 0.05
-  particleScaleMax: 0.15
+  particleScaleMax: 0.18
   driftSpeed: 0.3
   upwardSpeed: 0.1
   noiseStrength: 0.5
@@ -5909,11 +5909,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 709aa91de8fb80a4f94dc7ca7fdf3827, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralGenerator
-  rockCount: 4
-  treeCount: 4
-  bushCount: 4
-  spawnAreaSize: 20
-  forceRegenerate: 0
+  rockCount: 18
+  treeCount: 12
+  bushCount: 20
+  spawnAreaSize: 28
+  forceRegenerate: 1
 --- !u!1 &1557290562
 GameObject:
   m_ObjectHideFlags: 0

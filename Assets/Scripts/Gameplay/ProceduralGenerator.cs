@@ -169,9 +169,10 @@ public class ProceduralGenerator : MonoBehaviour
 
         Color trunkColor = new Color(0.35f, 0.25f, 0.15f);
         Color[] canopyColors = {
-            new Color(0.15f, 0.3f, 0.1f),
-            new Color(0.2f, 0.35f, 0.15f),
-            new Color(0.12f, 0.25f, 0.08f)
+            new Color(0.18f, 0.38f, 0.12f),
+            new Color(0.24f, 0.42f, 0.18f),
+            new Color(0.15f, 0.32f, 0.10f),
+            new Color(0.20f, 0.45f, 0.14f)
         };
 
         int treesPlaced = 0;
@@ -268,8 +269,8 @@ public class ProceduralGenerator : MonoBehaviour
             bush.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
             Color bushColor = Color.Lerp(
-                new Color(0.12f, 0.28f, 0.08f),
-                new Color(0.2f, 0.38f, 0.12f),
+                new Color(0.15f, 0.35f, 0.10f),
+                new Color(0.25f, 0.45f, 0.15f),
                 Random.value
             );
             SetToonColor(bush, bushColor);

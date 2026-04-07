@@ -39,7 +39,7 @@ Shader "Custom/GeometryGrass"
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-    #define BLADE_SEGMENTS 3
+    #define BLADE_SEGMENTS 4
 
     CBUFFER_START(UnityPerMaterial)
         float _BladeWidth;
@@ -76,6 +76,7 @@ Shader "Custom/GeometryGrass"
         float3 positionWS : TEXCOORD1;
         float3 normalWS : TEXCOORD2;
         float fogFactor : TEXCOORD3;
+        float colorShift : TEXCOORD4;
     };
 
     TEXTURE2D(_WindDistortionMap);
@@ -114,7 +115,7 @@ Shader "Custom/GeometryGrass"
         );
     }
 
-    GeometryOutput CreateGrassVertex(float3 positionWS, float width, float height, float forward, float2 uv, float3x3 transformMatrix)
+    GeometryOutput CreateGrassVertex(float3 positionWS, float width, float height, float forward, float2 uv, float3x3 transformMatrix, float colorShift)
     {
         GeometryOutput o;
 
@@ -129,6 +130,7 @@ Shader "Custom/GeometryGrass"
         o.normalWS = worldNormal;
         o.uv = uv;
         o.fogFactor = ComputeFogFactor(o.positionCS.z);
+        o.colorShift = colorShift;
 
         return o;
     }
@@ -187,6 +189,9 @@ Shader "Custom/GeometryGrass"
 
         int segments = mask > _GrassMaskThreshold ? BLADE_SEGMENTS : 0;
 
+        // Per-blade color variation
+        float colorShift = rand(pos.xyz + float3(7.31, 0, 13.17)) * 0.3 - 0.15;
+
         for (int i = 0; i < segments; i++)
         {
             float t = i / (float)BLADE_SEGMENTS;
@@ -196,12 +201,12 @@ Shader "Custom/GeometryGrass"
 
             float3x3 mat = i == 0 ? transformMatrixFacing : transformMatrix;
 
-            triStream.Append(CreateGrassVertex(pos,  segmentWidth, segmentHeight, segmentForward, float2(0, t), mat));
-            triStream.Append(CreateGrassVertex(pos, -segmentWidth, segmentHeight, segmentForward, float2(1, t), mat));
+            triStream.Append(CreateGrassVertex(pos,  segmentWidth, segmentHeight, segmentForward, float2(0, t), mat, colorShift));
+            triStream.Append(CreateGrassVertex(pos, -segmentWidth, segmentHeight, segmentForward, float2(1, t), mat, colorShift));
         }
 
         // Tip vertex
-        triStream.Append(CreateGrassVertex(pos, 0, height, forward, float2(0.5, 1), transformMatrix));
+        triStream.Append(CreateGrassVertex(pos, 0, height, forward, float2(0.5, 1), transformMatrix, colorShift));
     }
 
     ENDHLSL
@@ -237,6 +242,15 @@ Shader "Custom/GeometryGrass"
 
                 // Base-to-tip color gradient
                 half3 grassColor = lerp(_BaseColor.rgb, _TipColor.rgb, input.uv.y);
+
+                // Per-blade color variation
+                grassColor.g += input.colorShift * 0.1;
+                grassColor.r += input.colorShift * 0.05;
+
+                // Fake AO: darken base of each blade
+                float aoFactor = smoothstep(0.0, 0.4, input.uv.y);
+                aoFactor = lerp(0.5, 1.0, aoFactor);
+                grassColor *= aoFactor;
 
                 // Shadow sampling
                 float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);

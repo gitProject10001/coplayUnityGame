@@ -115,9 +115,9 @@ public class GrassSpawner : MonoBehaviour
         var plantData = new List<(Matrix4x4 mat, Color baseCol, Color tipCol)>();
 
         SpawnFoliage(bushData, bushCount, 0.6f, 1.4f, 0.4f, 0.9f,
-            new Color(0.06f, 0.14f, 0.04f), new Color(0.12f, 0.24f, 0.07f));
+            new Color(0.10f, 0.22f, 0.06f), new Color(0.18f, 0.35f, 0.10f));
         SpawnFoliage(plantData, plantCount, 0.15f, 0.35f, 0.15f, 0.35f,
-            new Color(0.07f, 0.16f, 0.04f), new Color(0.13f, 0.26f, 0.07f));
+            new Color(0.10f, 0.24f, 0.06f), new Color(0.18f, 0.36f, 0.10f));
 
         PrepareBatchesWithColor(bushData, bushBatches);
         PrepareBatchesWithColor(plantData, plantBatches);

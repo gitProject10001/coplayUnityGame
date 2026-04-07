@@ -4,6 +4,8 @@ Shader "Custom/ParticleBillboard"
     {
         _BaseColor ("Base Color", Color) = (1, 1, 1, 1)
         _MainTex ("Main Texture", 2D) = "white" {}
+        _WindSpeed ("Wind Speed", Float) = 1.0
+        _WindAmount ("Wind Amount", Float) = 0.1
     }
 
     SubShader
@@ -28,8 +30,11 @@ Shader "Custom/ParticleBillboard"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _SHADOWS_SOFT
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct Attributes
             {
@@ -42,6 +47,7 @@ Shader "Custom/ParticleBillboard"
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
+                float3 positionWS : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -51,6 +57,8 @@ Shader "Custom/ParticleBillboard"
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseColor;
                 float4 _MainTex_ST;
+                float _WindSpeed;
+                float _WindAmount;
             CBUFFER_END
 
             UNITY_INSTANCING_BUFFER_START(Props)
@@ -78,7 +86,13 @@ Shader "Custom/ParticleBillboard"
                     + camRight * input.positionOS.x * scale.x
                     + camUp * input.positionOS.y * scale.y;
 
+                // Wind sway: only affects upper half of billboard
+                float windPhase = worldCenter.x * 0.7 + worldCenter.z * 0.5 + _Time.y * _WindSpeed;
+                float windOffset = sin(windPhase) * _WindAmount * saturate(input.positionOS.y + 0.5);
+                worldPos.x += windOffset;
+
                 output.positionCS = TransformWorldToHClip(worldPos);
+                output.positionWS = worldPos;
                 output.uv = TRANSFORM_TEX(input.uv, _MainTex);
                 return output;
             }
@@ -92,6 +106,13 @@ Shader "Custom/ParticleBillboard"
 
                 // Alpha cutoff for pixel art crispness
                 clip(finalColor.a - 0.5);
+
+                // Simple toon lighting for foliage
+                Light mainLight = GetMainLight();
+                float fakeDiffuse = 0.5 + 0.5 * mainLight.direction.y;
+                float toon = step(0.4, fakeDiffuse);
+                float lightFactor = lerp(0.6, 1.0, toon);
+                finalColor.rgb *= lightFactor * mainLight.color;
 
                 return finalColor;
             }
