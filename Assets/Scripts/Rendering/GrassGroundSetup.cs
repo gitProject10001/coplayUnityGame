@@ -4,6 +4,7 @@ using UnityEngine;
 /// Creates a subdivided ground plane mesh and applies the geometry grass material.
 /// The geometry grass shader tessellates this mesh and emits grass blades from each triangle.
 /// </summary>
+[ExecuteAlways]
 public class GrassGroundSetup : MonoBehaviour
 {
     [Header("Ground Plane")]
@@ -19,6 +20,17 @@ public class GrassGroundSetup : MonoBehaviour
 
     void Awake()
     {
+        Setup();
+    }
+
+    void OnEnable()
+    {
+        if (!Application.isPlaying)
+            Setup();
+    }
+
+    void Setup()
+    {
         meshFilter = gameObject.GetComponent<MeshFilter>();
         if (meshFilter == null)
             meshFilter = gameObject.AddComponent<MeshFilter>();
@@ -27,10 +39,10 @@ public class GrassGroundSetup : MonoBehaviour
         if (meshRenderer == null)
             meshRenderer = gameObject.AddComponent<MeshRenderer>();
 
-        meshFilter.mesh = CreateSubdividedPlane(gridResolution, radius);
+        meshFilter.sharedMesh = CreateSubdividedPlane(gridResolution, radius);
 
         if (grassMaterial != null)
-            meshRenderer.material = grassMaterial;
+            meshRenderer.sharedMaterial = grassMaterial;
 
         meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         meshRenderer.receiveShadows = true;
