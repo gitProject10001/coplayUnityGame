@@ -9,7 +9,8 @@ public class GrassGroundSetup : MonoBehaviour
 {
     [Header("Ground Plane")]
     public float radius = 15f;
-    public int gridResolution = 30;
+    [Tooltip("Grid subdivisions per unit of radius. Resolution auto-scales with radius to keep density constant.")]
+    public float densityPerUnit = 2.5f;
     public float yOffset = 0.01f;
 
     [Header("Material")]
@@ -39,6 +40,8 @@ public class GrassGroundSetup : MonoBehaviour
         if (meshRenderer == null)
             meshRenderer = gameObject.AddComponent<MeshRenderer>();
 
+        // Auto-scale resolution to maintain consistent grass density at any radius
+        int gridResolution = Mathf.Clamp(Mathf.RoundToInt(radius * densityPerUnit), 4, 250);
         meshFilter.sharedMesh = CreateSubdividedPlane(gridResolution, radius);
 
         if (grassMaterial != null)

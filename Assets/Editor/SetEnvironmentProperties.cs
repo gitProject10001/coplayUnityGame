@@ -41,7 +41,7 @@ public class SetEnvironmentProperties
             var setup = grassGround.GetComponent<GrassGroundSetup>();
             if (setup != null)
             {
-                setup.gridResolution = 45;
+                setup.densityPerUnit = 2.5f;
                 setup.radius = 18f;
                 EditorUtility.SetDirty(setup);
                 Debug.Log("[EnvUpgrade] GrassGround updated");
