@@ -167,12 +167,24 @@ public class ProceduralGenerator : MonoBehaviour
     {
         Transform parent = CreateGroup("Trees");
 
-        Color trunkColor = new Color(0.35f, 0.25f, 0.15f);
+        Color[] trunkColors = {
+            new Color(0.35f, 0.25f, 0.15f),
+            new Color(0.30f, 0.22f, 0.12f),
+            new Color(0.40f, 0.28f, 0.16f)
+        };
+        Color rootColor = new Color(0.28f, 0.20f, 0.12f);
         Color[] canopyColors = {
             new Color(0.18f, 0.38f, 0.12f),
             new Color(0.24f, 0.42f, 0.18f),
             new Color(0.15f, 0.32f, 0.10f),
-            new Color(0.20f, 0.45f, 0.14f)
+            new Color(0.20f, 0.45f, 0.14f),
+            new Color(0.13f, 0.30f, 0.09f)
+        };
+        // Darker inner foliage color for depth
+        Color[] innerCanopyColors = {
+            new Color(0.10f, 0.22f, 0.07f),
+            new Color(0.12f, 0.25f, 0.08f),
+            new Color(0.08f, 0.20f, 0.06f)
         };
 
         int treesPlaced = 0;
@@ -183,7 +195,6 @@ public class ProceduralGenerator : MonoBehaviour
             attempts++;
             Vector3 pos = RandomPositionXZ();
 
-            // Bias toward edges: reject if too close to center
             if (pos.magnitude < 5f && Random.value < 0.7f)
                 continue;
 
@@ -193,40 +204,160 @@ public class ProceduralGenerator : MonoBehaviour
             treeRoot.transform.SetParent(parent);
             treeRoot.transform.position = pos;
 
-            // Trunk
-            float trunkHeight = Random.Range(1f, 2f);
-            float trunkRadius = Random.Range(0.1f, 0.2f);
-            Mesh trunkMesh = CreateCylinder(8, trunkHeight, trunkRadius);
+            Color trunkCol = trunkColors[Random.Range(0, trunkColors.Length)];
+            float trunkHeight = Random.Range(4.5f, 7.5f);
+            float trunkRadiusBase = Random.Range(0.15f, 0.28f);
+            float trunkRadiusTop = trunkRadiusBase * Random.Range(0.35f, 0.5f);
+
+            // Tapered trunk
+            Mesh trunkMesh = CreateTaperedCylinder(6, trunkHeight, trunkRadiusBase, trunkRadiusTop);
+            ApplyVertexNoise(trunkMesh, 0.03f, 3.0f);
             MakeFlatShaded(trunkMesh);
 
             GameObject trunk = CreateMeshObject("Trunk", trunkMesh, treeRoot.transform);
             trunk.transform.localPosition = new Vector3(0f, trunkHeight * 0.5f, 0f);
-            SetToonColor(trunk, trunkColor);
+            SetToonColor(trunk, trunkCol);
 
-            // Canopy: 2-3 overlapping noisy spheres
+            // Exposed roots at base (2-4 small tapered cylinders angled outward)
+            int rootCount = Random.Range(2, 5);
+            for (int r = 0; r < rootCount; r++)
+            {
+                float rootAngle = (360f / rootCount) * r + Random.Range(-20f, 20f);
+                float rootLength = Random.Range(0.3f, 0.6f);
+                float rootRadius = trunkRadiusBase * Random.Range(0.25f, 0.4f);
+
+                Mesh rootMesh = CreateTaperedCylinder(4, rootLength, rootRadius, rootRadius * 0.3f);
+                MakeFlatShaded(rootMesh);
+
+                GameObject rootObj = CreateMeshObject("Root_" + r, rootMesh, treeRoot.transform);
+                rootObj.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+                rootObj.transform.localRotation = Quaternion.Euler(0f, rootAngle, 55f + Random.Range(-10f, 10f));
+                SetToonColor(rootObj, rootColor);
+            }
+
+            // Branches — many, spread along trunk height
+            int branchCount = Random.Range(5, 9);
+            List<Vector3> branchTips = new List<Vector3>();
+            for (int b = 0; b < branchCount; b++)
+            {
+                float branchY = trunkHeight * Random.Range(0.3f, 0.9f);
+                float branchAngle = (360f / branchCount) * b + Random.Range(-25f, 25f);
+                float branchLength = Random.Range(1.0f, 2.2f);
+                float branchRadius = trunkRadiusTop * Random.Range(0.3f, 0.6f);
+                float branchTilt = Random.Range(35f, 70f);
+
+                Mesh branchMesh = CreateTaperedCylinder(4, branchLength, branchRadius, branchRadius * 0.4f);
+                MakeFlatShaded(branchMesh);
+
+                GameObject branchObj = CreateMeshObject("Branch_" + b, branchMesh, treeRoot.transform);
+                branchObj.transform.localPosition = new Vector3(0f, branchY, 0f);
+                branchObj.transform.localRotation = Quaternion.Euler(0f, branchAngle, branchTilt);
+                SetToonColor(branchObj, trunkCol);
+
+                // Calculate branch tip position for foliage placement
+                Vector3 branchDir = Quaternion.Euler(0f, branchAngle, branchTilt) * Vector3.up * branchLength;
+                branchTips.Add(new Vector3(branchDir.x, branchY + branchDir.y, branchDir.z));
+            }
+
+            // Main canopy: small tight cluster right at the crown
             int canopyCount = Random.Range(2, 4);
+
+            // Outer canopy spheres — small, tight at top
             for (int i = 0; i < canopyCount; i++)
             {
                 Mesh canopyMesh = CloneMesh(baseIco);
                 ApplyVertexNoise(canopyMesh, Random.Range(0.1f, 0.2f), 2.0f);
                 MakeFlatShaded(canopyMesh);
 
-                float canopyScale = Random.Range(0.8f, 1.8f);
+                float canopyScale = Random.Range(0.45f, 0.85f);
+                float spreadRadius = 0.3f;
                 Vector3 canopyOffset = new Vector3(
-                    Random.Range(-0.3f, 0.3f),
-                    trunkHeight + Random.Range(0f, 0.5f),
-                    Random.Range(-0.3f, 0.3f)
+                    Random.Range(-spreadRadius, spreadRadius),
+                    trunkHeight + Random.Range(0f, 0.4f),
+                    Random.Range(-spreadRadius, spreadRadius)
                 );
 
                 GameObject canopy = CreateMeshObject("Canopy_" + i, canopyMesh, treeRoot.transform);
                 canopy.transform.localPosition = canopyOffset;
                 canopy.transform.localScale = Vector3.one * canopyScale;
+                canopy.transform.localRotation = Quaternion.Euler(
+                    Random.Range(-15f, 15f), Random.Range(0f, 360f), Random.Range(-15f, 15f));
                 SetToonColor(canopy, canopyColors[Random.Range(0, canopyColors.Length)]);
+            }
+
+            // Branch tip foliage clusters
+            foreach (var tip in branchTips)
+            {
+                int tipClumps = Random.Range(1, 3);
+                for (int c = 0; c < tipClumps; c++)
+                {
+                    Mesh tipMesh = CloneMesh(baseIco);
+                    ApplyVertexNoise(tipMesh, Random.Range(0.1f, 0.18f), 2.5f);
+                    MakeFlatShaded(tipMesh);
+
+                    float tipScale = Random.Range(0.3f, 0.6f);
+                    Vector3 tipOffset = tip + new Vector3(
+                        Random.Range(-0.2f, 0.2f),
+                        Random.Range(-0.1f, 0.2f),
+                        Random.Range(-0.2f, 0.2f)
+                    );
+
+                    GameObject tipCanopy = CreateMeshObject("BranchFoliage_" + c, tipMesh, treeRoot.transform);
+                    tipCanopy.transform.localPosition = tipOffset;
+                    tipCanopy.transform.localScale = Vector3.one * tipScale;
+                    SetToonColor(tipCanopy, canopyColors[Random.Range(0, canopyColors.Length)]);
+                }
             }
 
             interestPoints.Add(pos);
             treesPlaced++;
         }
+    }
+
+    // ─────────────────────────────────────────────
+    // Mesh generation: Tapered Cylinder
+    // ─────────────────────────────────────────────
+
+    public Mesh CreateTaperedCylinder(int sides, float height, float bottomRadius, float topRadius)
+    {
+        List<Vector3> verts = new List<Vector3>();
+        List<int> tris = new List<int>();
+
+        float halfH = height * 0.5f;
+
+        for (int i = 0; i < sides; i++)
+        {
+            float a0 = (2f * Mathf.PI * i) / sides;
+            float a1 = (2f * Mathf.PI * ((i + 1) % sides)) / sides;
+
+            Vector3 b0 = new Vector3(Mathf.Cos(a0) * bottomRadius, -halfH, Mathf.Sin(a0) * bottomRadius);
+            Vector3 b1 = new Vector3(Mathf.Cos(a1) * bottomRadius, -halfH, Mathf.Sin(a1) * bottomRadius);
+            Vector3 t0 = new Vector3(Mathf.Cos(a0) * topRadius,     halfH, Mathf.Sin(a0) * topRadius);
+            Vector3 t1 = new Vector3(Mathf.Cos(a1) * topRadius,     halfH, Mathf.Sin(a1) * topRadius);
+
+            int idx = verts.Count;
+            verts.Add(b0); verts.Add(b1); verts.Add(t1); verts.Add(t0);
+            tris.AddRange(new[] { idx, idx + 1, idx + 2 });
+            tris.AddRange(new[] { idx, idx + 2, idx + 3 });
+
+            // Bottom cap
+            idx = verts.Count;
+            verts.Add(new Vector3(0, -halfH, 0)); verts.Add(b1); verts.Add(b0);
+            tris.AddRange(new[] { idx, idx + 1, idx + 2 });
+
+            // Top cap
+            idx = verts.Count;
+            verts.Add(new Vector3(0, halfH, 0)); verts.Add(t0); verts.Add(t1);
+            tris.AddRange(new[] { idx, idx + 1, idx + 2 });
+        }
+
+        Mesh mesh = new Mesh();
+        mesh.name = "TaperedCylinder";
+        mesh.SetVertices(verts);
+        mesh.SetTriangles(tris, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     // ─────────────────────────────────────────────
