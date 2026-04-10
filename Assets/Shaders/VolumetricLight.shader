@@ -45,16 +45,11 @@ Shader "Hidden/VolumetricLight"
                 float2 texcoord : TEXCOORD0;
             };
 
-            // Procedural fullscreen triangle
             Varyings FullscreenVert(uint vertexID : SV_VertexID)
             {
                 Varyings output;
-                // Generate a fullscreen triangle from 3 vertices
-                output.texcoord = float2((vertexID << 1) & 2, vertexID & 2);
-                output.positionCS = float4(output.texcoord * 2.0 - 1.0, 0.0, 1.0);
-                #if UNITY_UV_STARTS_AT_TOP
-                    output.texcoord.y = 1.0 - output.texcoord.y;
-                #endif
+                output.positionCS = GetFullScreenTriangleVertexPosition(vertexID);
+                output.texcoord   = GetFullScreenTriangleTexCoord(vertexID);
                 return output;
             }
 
@@ -110,13 +105,8 @@ Shader "Hidden/VolumetricLight"
 
                 float rawDepth = SampleSceneDepth(uv);
 
-                // Reconstruct world position
-                float4 ndcPos = float4(uv * 2.0 - 1.0, rawDepth, 1.0);
-                #if UNITY_UV_STARTS_AT_TOP
-                    ndcPos.y = -ndcPos.y;
-                #endif
-                float4 worldH = mul(UNITY_MATRIX_I_VP, ndcPos);
-                float3 worldPos = worldH.xyz / worldH.w;
+                // Reconstruct world position using URP built-in (handles all platform Y-flips)
+                float3 worldPos = ComputeWorldSpacePosition(uv, rawDepth, UNITY_MATRIX_I_VP);
 
                 float3 camPos = _WorldSpaceCameraPos;
                 float3 rayDir = normalize(worldPos - camPos);
@@ -151,8 +141,8 @@ Shader "Hidden/VolumetricLight"
 
                 accumLight *= phase * _Intensity;
 
-                // Soft posterize for pixel art feel
-                accumLight = floor(accumLight * 12.0 + 0.5) / 12.0;
+                // Soft posterize for pixel art feel (high step count to preserve subtle rays)
+                accumLight = floor(accumLight * 48.0 + 0.5) / 48.0;
 
                 half3 volumetricColor = accumLight * _LightColor.rgb * mainLight.color;
                 return half4(volumetricColor, 0);

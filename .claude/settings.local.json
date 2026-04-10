@@ -33,7 +33,12 @@
       "Bash(find Assets/Prefabs -type f -name *)",
       "mcp__coplay-mcp__get_animator_controller_data",
       "mcp__coplay-mcp__create_scene",
-      "mcp__coplay-mcp__open_scene"
+      "mcp__coplay-mcp__open_scene",
+      "Bash(uvx blender-mcp:*)",
+      "Bash(pip show:*)",
+      "Bash(claude --mcp-debug)",
+      "mcp__blender__execute_blender_code",
+      "mcp__blender__get_viewport_screenshot"
     ]
   }
 }

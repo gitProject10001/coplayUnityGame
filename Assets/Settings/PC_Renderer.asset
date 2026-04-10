@@ -46,12 +46,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VolumetricLightFeature
   m_Active: 1
   settings:
-    intensity: 0.12
+    intensity: 0.5
     steps: 16
     maxDistance: 30
     scattering: 0.4
     lightColor: {r: 1, g: 0.95, b: 0.8, a: 1}
-    density: 0.4
+    density: 0.8
     noiseScale: 5
     noiseStrength: 0.3
 --- !u!114 &-1132356603625066941
