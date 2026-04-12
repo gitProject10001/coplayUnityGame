@@ -22,31 +22,41 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _NormalMap:
+        m_Texture: {fileID: 2800000, guid: 9574d4979b2f3ba42bd3f0ad607ad242, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _AmbientStrength: 0.45
-    - _CausticScale: 1.4
-    - _CausticSpeed: 0.18
-    - _CausticStrength: 0.55
-    - _CausticThreshold: 0.35
+    - _CausticScale: 2.6
+    - _CausticSpeed: 0.14
+    - _CausticStrength: 0.20
+    - _CausticThreshold: 0.50
     - _DeepBandStart: 0.55
-    - _DepthFadeDistance: 1.5
+    - _DepthFadeDistance: 3.5
     - _EdgeSmoothness: 0.04
     - _LightSteps: 3
     - _MidBandStart: 0.18
-    - _RippleAmp: 0.12
-    - _RippleFreq: 7
-    - _RippleLife: 2.5
-    - _RippleSpeed: 1.6
-    - _ShoreFoamWidth: 0.35
-    - _WaveAmplitude: 0.04
+    - _NormalScale: 0.18
+    - _NormalTiling: 1.2
+    - _RippleAmp: 0.15
+    - _RippleFreq: 8
+    - _RippleLife: 2.8
+    - _RippleSpeed: 1.8
+    - _ShoreFoamWidth: 0.5
+    - _SpecularPow: 48
+    - _SpecularStrength: 0.28
+    - _WaveAmplitude: 0.07
     - _WaveFrequency: 3
     - _WaveSpeed: 0.6
     m_Colors:
     - _DeepColor: {r: 0.06, g: 0.18, b: 0.32, a: 0.96}
     - _FoamColor: {r: 0.96, g: 0.98, b: 1, a: 1}
     - _MidColor: {r: 0.18, g: 0.45, b: 0.62, a: 0.92}
+    - _ScrollDir1: {r: 0.03, g: 0.02, b: 0, a: 0}
+    - _ScrollDir2: {r: -0.02, g: 0.03, b: 0, a: 0}
     - _ShadowColor: {r: 0.29, g: 0.25, b: 0.38, a: 1}
     - _ShallowColor: {r: 0.48, g: 0.78, b: 0.85, a: 0.85}
   m_BuildTextureStacks: []

@@ -49,9 +49,18 @@ Shader "Custom/PainterlyWater"
         _RippleLife    ("Ripple Life Seconds",        Range(0.5, 8)) = 2.5
 
         [Header(Toon)]
-        _LightSteps     ("Light Steps",     Range(2, 6))   = 3
-        _EdgeSmoothness ("Edge Smoothness", Range(0, 0.5)) = 0.04
-        _AmbientStrength("Ambient Strength",Range(0, 1))   = 0.45
+        _LightSteps      ("Light Steps",      Range(2, 6))   = 3
+        _EdgeSmoothness  ("Edge Smoothness",  Range(0, 0.5)) = 0.04
+        _AmbientStrength ("Ambient Strength", Range(0, 1))   = 0.45
+        _SpecularStrength ("Specular Strength", Range(0, 1)) = 0.28
+        _SpecularPow      ("Specular Power",    Range(8, 128)) = 48
+
+        [Header(Surface Normals)]
+        [NoScaleOffset] _NormalMap ("Normal Map", 2D) = "bump" {}
+        _NormalScale    ("Normal Strength",    Range(0, 1))    = 0.15
+        _NormalTiling   ("Normal Tiling",      Range(0.1, 10)) = 1.0
+        _ScrollDir1     ("Scroll Direction 1", Vector)          = (0.03, 0.02, 0, 0)
+        _ScrollDir2     ("Scroll Direction 2", Vector)          = (-0.02, 0.03, 0, 0)
     }
 
     SubShader
@@ -85,6 +94,9 @@ Shader "Custom/PainterlyWater"
 
             #define MAX_RIPPLES 16
 
+            TEXTURE2D(_NormalMap);
+            SAMPLER(sampler_NormalMap);
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -101,6 +113,7 @@ Shader "Custom/PainterlyWater"
                 float3 normalWS   : TEXCOORD3;
                 float  rippleH    : TEXCOORD4;
                 float  fogFactor  : TEXCOORD5;
+                float4 normalUV   : TEXCOORD6;
             };
 
             CBUFFER_START(UnityPerMaterial)
@@ -132,6 +145,13 @@ Shader "Custom/PainterlyWater"
                 float _LightSteps;
                 float _EdgeSmoothness;
                 float _AmbientStrength;
+                float _SpecularStrength;
+                float _SpecularPow;
+
+                float  _NormalScale;
+                float  _NormalTiling;
+                float4 _ScrollDir1;
+                float4 _ScrollDir2;
             CBUFFER_END
 
             // ---- Globals set by WaterRippleEmitter.cs ----
@@ -187,6 +207,10 @@ Shader "Custom/PainterlyWater"
 
                 wp.y += ambient + ripple;
 
+                float2 worldUV = wp.xz * _NormalTiling;
+                o.normalUV.xy = worldUV + _ScrollDir1.xy * _Time.y;
+                o.normalUV.zw = worldUV + _ScrollDir2.xy * _Time.y;
+
                 o.positionWS = wp;
                 o.positionCS = TransformWorldToHClip(wp);
                 o.screenPos  = ComputeScreenPos(o.positionCS);
@@ -235,23 +259,29 @@ Shader "Custom/PainterlyWater"
                 col = lerp(col,               _DeepColor.rgb, deepT);
                 float baseAlpha = lerp(_ShallowColor.a, _DeepColor.a, depthN);
 
-                // Fallback: when there is no actual geometry beneath the water plane
-                // (open water on a flat scene) the depth fade reads ~0 and we'd get
-                // pure shallow color everywhere. Pin to mid color so it still reads
-                // as water rather than light cyan paint.
+                // Fallback for open water (no geometry below): use a position-varied
+                // dark-to-mid gradient so the surface still reads as water.
                 float hasFloor = step(0.05, depth);
-                col = lerp(_MidColor.rgb, col, hasFloor);
+                float openVar = sin(i.positionWS.x * 0.18 + _Time.y * 0.04)
+                              * sin(i.positionWS.z * 0.22 - _Time.y * 0.03) * 0.08;
+                half3 openColor = _MidColor.rgb + openVar;
+                col = lerp(openColor, col, hasFloor);
                 baseAlpha = lerp(_MidColor.a, baseAlpha, hasFloor);
 
-                // Painted caustic foam — two crossed stepped sins, NOT noise
+                // Painted caustic — multiply two sin fields at different angles/scales
+                // for organic cell-like highlights, then add a fine-detail third layer.
                 float t = _Time.y * _CausticSpeed;
-                float c1 = sin((i.positionWS.x + t)        * _CausticScale)
-                         * sin((i.positionWS.z + t * 0.7)  * _CausticScale);
-                float c2 = sin((i.positionWS.x * 1.3 - t * 0.5) * _CausticScale * 1.4)
-                         * sin((i.positionWS.z * 0.9 + t * 0.6) * _CausticScale * 1.4);
-                float caustic = (c1 + c2 * 0.6);
-                float foamMask = step(_CausticThreshold, caustic);
-                col = lerp(col, _FoamColor.rgb, foamMask * _CausticStrength * (1.0 - depthN * 0.6));
+                float px = i.positionWS.x;
+                float pz = i.positionWS.z;
+                float fieldA = sin((px + t * 0.9)          * _CausticScale)
+                             * sin((pz + t * 0.65)         * _CausticScale);
+                float fieldB = sin((px * 0.83 - t * 0.55)  * _CausticScale * 1.31)
+                             * sin((pz * 1.17 + t * 0.42)  * _CausticScale * 1.31);
+                float detail = sin((px * 0.61 + pz * 1.09 + t * 0.38) * _CausticScale * 2.17)
+                             * sin((px * 1.43 - pz * 0.77 - t * 0.29) * _CausticScale * 1.89);
+                float caustic = fieldA * fieldB * 0.7 + detail * 0.3;
+                float foamMask = smoothstep(_CausticThreshold - 0.08, _CausticThreshold + 0.08, caustic);
+                col = lerp(col, _FoamColor.rgb, foamMask * _CausticStrength * (1.0 - depthN * 0.55));
 
                 // Edge / shore foam — only fires near actual underwater geometry,
                 // never on a free-floating plane with nothing beneath it.
@@ -260,12 +290,18 @@ Shader "Custom/PainterlyWater"
                 float shore = step(0.55, shoreT) * realDepth;
                 col = lerp(col, _FoamColor.rgb, shore);
 
-                // Wake foam — bright crests where ripple displacement is high
-                float wakeFoam = step(_RippleAmp * 0.4, abs(i.rippleH));
-                col = lerp(col, _FoamColor.rgb, wakeFoam * 0.85);
+                // Wake foam — soft crests where ripple displacement is high
+                float wakeFoam = smoothstep(_RippleAmp * 0.3, _RippleAmp * 0.7, abs(i.rippleH));
+                col = lerp(col, _FoamColor.rgb, wakeFoam * 0.72);
+
+                // Scrolling normal maps — interference pattern
+                float3 n1 = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, i.normalUV.xy), _NormalScale);
+                float3 n2 = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, i.normalUV.zw), _NormalScale);
+                float3 blended = normalize(float3(n1.xy + n2.xy, 1.0));
 
                 // Toon shading — keep it gentle so the foam pattern reads
-                float3 N = normalize(i.normalWS);
+                // Flat-plane TBN: tangent-space (x,y,z) → world (x,z,y)
+                float3 N = normalize(float3(blended.x, blended.z, blended.y));
                 float4 sc = TransformWorldToShadowCoord(i.positionWS);
                 Light L  = GetMainLight(sc);
                 float NdotL = saturate(dot(N, L.direction));
@@ -273,6 +309,13 @@ Shader "Custom/PainterlyWater"
                 float shadowMix = (1.0 - toon) * (1.0 - L.shadowAttenuation * 0.6);
                 half3 lit = col * (toon * L.color + _AmbientStrength);
                 lit = lerp(lit, lit * _ShadowColor.rgb, shadowMix * 0.35);
+
+                // Toon specular glints — posterized Blinn-Phong for sun sparkle
+                float3 viewDir = normalize(_WorldSpaceCameraPos - i.positionWS);
+                float3 halfDir = normalize(L.direction + viewDir);
+                float spec = pow(saturate(dot(N, halfDir)), _SpecularPow);
+                float specToon = smoothstep(0.7, 0.85, spec);
+                lit += _FoamColor.rgb * specToon * _SpecularStrength * toon;
 
                 lit = MixFog(lit, i.fogFactor);
                 float a = saturate(baseAlpha + foamMask * 0.15 + shore * 0.6 + wakeFoam * 0.5);

@@ -1,15 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Pushes a circular buffer of recent player positions into the PainterlyWater
-/// shader as a Vector4 array global. Each entry is (worldX, worldY, worldZ, startTime)
-/// — the shader synthesises an expanding ring at each point. No render features,
-/// no extra cameras, no compute shaders.
-///
-/// Attach to anything that should leave wakes in water (player, NPCs, projectiles).
-/// The emitter only spawns ripples when the attached transform is moving and
-/// roughly at the configured water height.
-/// </summary>
 [DisallowMultipleComponent]
 public class WaterRippleEmitter : MonoBehaviour
 {
@@ -37,10 +27,27 @@ public class WaterRippleEmitter : MonoBehaviour
     Vector3 _lastSpawnPos;
     float   _lastSpawnTime;
 
-    void OnEnable()
+    static void EnsureIDs()
     {
         if (s_PointsID < 0) s_PointsID = Shader.PropertyToID("_WaterRipplePoints");
         if (s_CountID  < 0) s_CountID  = Shader.PropertyToID("_WaterRippleCount");
+    }
+
+    // Emit a one-shot ripple at a specific world position (for splashes, impacts, etc.)
+    public static void EmitAt(Vector3 worldPos)
+    {
+        EnsureIDs();
+        Vector4 ripple = new Vector4(worldPos.x, worldPos.y, worldPos.z, Time.timeSinceLevelLoad);
+        s_Buffer[s_NextIndex] = ripple;
+        s_NextIndex = (s_NextIndex + 1) % MAX_RIPPLES;
+        s_LiveCount = Mathf.Min(s_LiveCount + 1, MAX_RIPPLES);
+        Shader.SetGlobalVectorArray(s_PointsID, s_Buffer);
+        Shader.SetGlobalInt(s_CountID, s_LiveCount);
+    }
+
+    void OnEnable()
+    {
+        EnsureIDs();
         _lastSpawnPos  = transform.position;
         _lastSpawnTime = -999f;
     }
