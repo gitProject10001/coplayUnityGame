@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Toon_Water
+  m_Shader: {fileID: 4800000, guid: d2b3162fd1288db4c86eb3654a770f52, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _AmbientStrength: 0.45
+    - _CausticScale: 1.4
+    - _CausticSpeed: 0.18
+    - _CausticStrength: 0.55
+    - _CausticThreshold: 0.35
+    - _DeepBandStart: 0.55
+    - _DepthFadeDistance: 1.5
+    - _EdgeSmoothness: 0.04
+    - _LightSteps: 3
+    - _MidBandStart: 0.18
+    - _RippleAmp: 0.12
+    - _RippleFreq: 7
+    - _RippleLife: 2.5
+    - _RippleSpeed: 1.6
+    - _ShoreFoamWidth: 0.35
+    - _WaveAmplitude: 0.04
+    - _WaveFrequency: 3
+    - _WaveSpeed: 0.6
+    m_Colors:
+    - _DeepColor: {r: 0.06, g: 0.18, b: 0.32, a: 0.96}
+    - _FoamColor: {r: 0.96, g: 0.98, b: 1, a: 1}
+    - _MidColor: {r: 0.18, g: 0.45, b: 0.62, a: 0.92}
+    - _ShadowColor: {r: 0.29, g: 0.25, b: 0.38, a: 1}
+    - _ShallowColor: {r: 0.48, g: 0.78, b: 0.85, a: 0.85}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

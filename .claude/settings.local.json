@@ -38,7 +38,10 @@
       "Bash(pip show:*)",
       "Bash(claude --mcp-debug)",
       "mcp__blender__execute_blender_code",
-      "mcp__blender__get_viewport_screenshot"
+      "mcp__blender__get_viewport_screenshot",
+      "mcp__coplay-mcp__list_unity_project_roots",
+      "mcp__blender__get_scene_info",
+      "mcp__coplay-mcp__set_unity_project_root"
     ]
   }
 }

@@ -19,6 +19,8 @@ Shader "Custom/ToonLit"
         _RimPower ("Rim Power", Range(0.5, 8)) = 2.5
         _RimThreshold ("Rim Threshold", Range(0, 1)) = 0.3
         _RimColor ("Rim Color", Color) = (0.8, 0.85, 1.0, 1)
+        [Header(Vertex Paint)]
+        _VertexColorStrength ("Vertex Color Strength", Range(0, 1)) = 1
     }
     SubShader
     {
@@ -44,17 +46,19 @@ Shader "Custom/ToonLit"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-                float2 uv : TEXCOORD0;
+                float3 normalOS   : NORMAL;
+                float2 uv         : TEXCOORD0;
+                float4 color      : COLOR;     // baked vertex paint (AO + cavity + warm/cool dome + hue jitter)
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float3 normalWS : TEXCOORD1;
+                float2 uv         : TEXCOORD0;
+                float3 normalWS   : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
-                float fogFactor : TEXCOORD3;
+                float fogFactor   : TEXCOORD3;
+                float4 vColor     : TEXCOORD4;
             };
 
             TEXTURE2D(_BaseMap);
@@ -75,6 +79,7 @@ Shader "Custom/ToonLit"
                 float _RimPower;
                 float _RimThreshold;
                 float4 _RimColor;
+                float _VertexColorStrength;
             CBUFFER_END
 
             Varyings vert(Attributes input)
@@ -86,6 +91,7 @@ Shader "Custom/ToonLit"
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 output.fogFactor = ComputeFogFactor(vertexInput.positionCS.z);
+                output.vColor = input.color;
                 return output;
             }
 
@@ -94,6 +100,12 @@ Shader "Custom/ToonLit"
                 // Sample base texture
                 half4 texColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
                 half3 baseColor = texColor.rgb * _BaseColor.rgb;
+
+                // Multiply baked vertex paint into the base color. Vertex colors
+                // hold AO + cavity + warm/cool dome + hue jitter from Blender, which
+                // is the single biggest contributor to the painted look.
+                half3 vTint = lerp(half3(1,1,1), input.vColor.rgb, _VertexColorStrength);
+                baseColor *= vTint;
 
                 // Get main light
                 float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);

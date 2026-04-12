@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44477acb58f91f34f94637e2d33cfcb1, type: 3}
   m_Name: Pixelize Feature
   m_EditorClassIdentifier: Assembly-CSharp::PixelizeFeature
-  m_Active: 1
+  m_Active: 0
   settings:
     pixelScale: 1
     colorSteps: 78
@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2119111c0b738948bb12c00e3413bbc, type: 3}
   m_Name: VolumetricLightFeature
   m_EditorClassIdentifier: Assembly-CSharp::VolumetricLightFeature
-  m_Active: 1
+  m_Active: 0
   settings:
     intensity: 0.5
     steps: 16
@@ -66,7 +66,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44477acb58f91f34f94637e2d33cfcb1, type: 3}
   m_Name: Pixelize Feature
   m_EditorClassIdentifier: Assembly-CSharp::PixelizeFeature
-  m_Active: 1
+  m_Active: 0
   settings:
     pixelScale: 1
     colorSteps: 2
