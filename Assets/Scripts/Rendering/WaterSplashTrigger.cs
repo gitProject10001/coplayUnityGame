@@ -36,6 +36,7 @@ public class WaterSplashTrigger : MonoBehaviour
                                      other.bounds.center.z);
 
         WaterRippleEmitter.EmitAt(hitPos);
+        WaveHeightfield.Instance?.SplashAt(hitPos, Mathf.Clamp01(speed / 5f));
 
         if (splashPrefab != null)
             Instantiate(splashPrefab, hitPos, Quaternion.identity);

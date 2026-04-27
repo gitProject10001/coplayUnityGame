@@ -29,35 +29,40 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AmbientStrength: 0.45
-    - _CausticScale: 2.6
-    - _CausticSpeed: 0.14
-    - _CausticStrength: 0.20
-    - _CausticThreshold: 0.50
-    - _DeepBandStart: 0.55
-    - _DepthFadeDistance: 3.5
-    - _EdgeSmoothness: 0.04
-    - _LightSteps: 3
-    - _MidBandStart: 0.18
-    - _NormalScale: 0.18
-    - _NormalTiling: 1.2
-    - _RippleAmp: 0.15
-    - _RippleFreq: 8
+    - _AmbientStrength: 1
+    - _CausticScale: 5.1
+    - _CausticSpeed: 0.71
+    - _CausticStrength: 0.04
+    - _CausticThreshold: 0.08
+    - _DeepBandStart: 0.527
+    - _DepthFadeDistance: 0.58
+    - _EdgeSmoothness: 0.5
+    - _HeightfieldNormalStrength: 2
+    - _LightSteps: 6
+    - _MidBandStart: 1
+    - _NormalScale: 0.65
+    - _NormalTiling: 7.5
+    - _ReflectionStrength: 1
+    - _RefractionStrength: 0.1
+    - _RippleAmp: 0.236
+    - _RippleFreq: 1
     - _RippleLife: 2.8
     - _RippleSpeed: 1.8
-    - _ShoreFoamWidth: 0.5
-    - _SpecularPow: 48
-    - _SpecularStrength: 0.28
-    - _WaveAmplitude: 0.07
-    - _WaveFrequency: 3
-    - _WaveSpeed: 0.6
+    - _ShoreFoamWidth: 0.287
+    - _SpecularPow: 37.2
+    - _SpecularStrength: 0.489
+    - _WaveAmplitude: 0.03
+    - _WaveFrequency: 7.34
+    - _WaveSpeed: 0.5
     m_Colors:
-    - _DeepColor: {r: 0.06, g: 0.18, b: 0.32, a: 0.96}
-    - _FoamColor: {r: 0.96, g: 0.98, b: 1, a: 1}
-    - _MidColor: {r: 0.18, g: 0.45, b: 0.62, a: 0.92}
-    - _ScrollDir1: {r: 0.03, g: 0.02, b: 0, a: 0}
+    - _DeepColor: {r: 0.1445799, g: 0.3251107, b: 0.5377358, a: 0.96}
+    - _FoamColor: {r: 0.55193126, g: 0.64860713, b: 0.745283, a: 1}
+    - _MidColor: {r: 0.57992166, g: 0.6415023, b: 0.6792453, a: 0.92}
+    - _ReflectionTint: {r: 0.85, g: 0.92, b: 1, a: 1}
+    - _RippleFoamColor: {r: 0.31706122, g: 0.42739853, b: 0.5377358, a: 1}
+    - _ScrollDir1: {r: 0.69, g: 0.02, b: 0, a: 0}
     - _ScrollDir2: {r: -0.02, g: 0.03, b: 0, a: 0}
-    - _ShadowColor: {r: 0.29, g: 0.25, b: 0.38, a: 1}
-    - _ShallowColor: {r: 0.48, g: 0.78, b: 0.85, a: 0.85}
+    - _ShadowColor: {r: 0.32064143, g: 0.31238872, b: 0.33962262, a: 1}
+    - _ShallowColor: {r: 0.38180846, g: 0.46881446, b: 0.49056602, a: 0.85}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

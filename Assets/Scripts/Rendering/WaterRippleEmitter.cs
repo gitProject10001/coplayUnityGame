@@ -37,7 +37,8 @@ public class WaterRippleEmitter : MonoBehaviour
     public static void EmitAt(Vector3 worldPos)
     {
         EnsureIDs();
-        Vector4 ripple = new Vector4(worldPos.x, worldPos.y, worldPos.z, Time.timeSinceLevelLoad);
+        // Using Time.time to match _Time.y in shaders
+        Vector4 ripple = new Vector4(worldPos.x, worldPos.y, worldPos.z, Time.time);
         s_Buffer[s_NextIndex] = ripple;
         s_NextIndex = (s_NextIndex + 1) % MAX_RIPPLES;
         s_LiveCount = Mathf.Min(s_LiveCount + 1, MAX_RIPPLES);
@@ -65,7 +66,8 @@ public class WaterRippleEmitter : MonoBehaviour
         if (moved < minSpawnDistance && _lastSpawnTime > 0f) return;
 
         // Snap the ripple to the water surface so the wave front is on the plane
-        Vector4 ripple = new Vector4(p.x, waterHeight, p.z, Time.timeSinceLevelLoad);
+        // Using Time.time to match _Time.y in shaders
+        Vector4 ripple = new Vector4(p.x, waterHeight, p.z, Time.time);
         s_Buffer[s_NextIndex] = ripple;
         s_NextIndex = (s_NextIndex + 1) % MAX_RIPPLES;
         s_LiveCount = Mathf.Min(s_LiveCount + 1, MAX_RIPPLES);

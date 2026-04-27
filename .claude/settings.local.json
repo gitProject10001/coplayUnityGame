@@ -44,7 +44,8 @@
       "mcp__coplay-mcp__set_unity_project_root",
       "mcp__blender__search_polyhaven_assets",
       "mcp__coplay-mcp__generate_or_edit_images",
-      "Bash(git -C \"C:/Users/jonny/Desktop/unity/My project for codplay\" log --oneline -20)"
+      "Bash(git -C \"C:/Users/jonny/Desktop/unity/My project for codplay\" log --oneline -20)",
+      "Bash(xargs grep *)"
     ]
   }
 }
